@@ -3,8 +3,11 @@ name = "ginepro"
 version = "0.1.0"
 authors = ["Helge Hoff <helge.hoff@truelayer.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "A client-side gRPC channel implementation for tonic"
+repository = "https://github.com/TrueLayer/ginepro"
+license = "MIT"
+keywords = ["gRPC", "tonic", "channel", "load", "balancer"]
+categories = ["asynchronous", "web-programming"]
 
 [dependencies]
 tonic = { version = "0.4", features = ["tls"] }
