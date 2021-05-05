@@ -10,10 +10,10 @@ edition = "2018"
 tonic = { version = "0.4", features = ["tls"] }
 tower = { version = "0.4", default-features = false, features = ["discover"] }
 tower-service = "0.3"
-anyhow = "1.0.32"
+anyhow = "1"
 tokio = { version = "1", features = ["full"] }
 trust-dns-resolver = "0.20"
-async-trait = "0.1.40"
-tracing = { version = "0.1.14", features = ["log", "attributes"] }
-tracing-futures = "0.2.4"
-http = "0.2.1"
+async-trait = "0.1"
+tracing = { version = "0.1", features = ["log", "attributes"] }
+tracing-futures = "0.2"
+http = "0.2"
