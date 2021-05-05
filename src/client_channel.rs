@@ -19,8 +19,8 @@ static GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE: usize = 1024;
 /// ```rust
 /// #[tokio::main]
 /// async fn main() {
-///     use truelayer_tonic::client::{LoadBalancedChannelBuilder,LoadBalancedChannel};
-///     use truelayer_tonic::pb::tester_client::TesterClient;
+///     use ginepro::{LoadBalancedChannelBuilder,LoadBalancedChannel};
+///     use ginepro::pb::tester_client::TesterClient;
 ///
 ///     let load_balanced_channel =
 ///     LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000)).await
