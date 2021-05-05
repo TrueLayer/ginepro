@@ -8,11 +8,11 @@ pub struct ServiceDefinition {
     pub port: u16,
 }
 
-impl Into<ServiceDefinition> for (&str, u16) {
-    fn into(self) -> ServiceDefinition {
+impl From<(&str, u16)> for ServiceDefinition {
+    fn from(service: (&str, u16)) -> Self {
         ServiceDefinition {
-            hostname: self.0.to_string(),
-            port: self.1,
+            hostname: service.0.to_string(),
+            port: service.1,
         }
     }
 }

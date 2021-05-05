@@ -32,9 +32,9 @@ static GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE: usize = 1024;
 #[derive(Debug, Clone)]
 pub struct LoadBalancedChannel(Channel);
 
-impl Into<Channel> for LoadBalancedChannel {
-    fn into(self) -> Channel {
-        self.0
+impl From<LoadBalancedChannel> for Channel {
+    fn from(channel: LoadBalancedChannel) -> Self {
+        channel.0
     }
 }
 
