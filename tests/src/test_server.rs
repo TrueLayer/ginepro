@@ -59,7 +59,7 @@ impl TestServer {
         Self::start_with_router(server_builder.add_service(service), address).await
     }
 
-    /// Bootstrap a tonic `TestServer`, with the a tonic [`Router`][tonic::transport:server::Router].
+    /// Bootstrap a tonic `TestServer`, with the a tonic [`Router`][tonic::transport::server::Router].
     /// This enables you to construct a `TestServer` with multiple services.
     ///
     /// ```
