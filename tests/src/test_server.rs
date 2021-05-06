@@ -63,7 +63,7 @@ impl TestServer {
     /// This enables you to construct a `TestServer` with multiple services.
     ///
     /// ```
-    ///  use truelayer_tonic::TestServer;
+    ///  use tests::TestServer;
     ///  use tonic::transport::Server;
     ///
     /// async fn build_test_server() {

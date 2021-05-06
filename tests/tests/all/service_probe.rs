@@ -1,12 +1,12 @@
 use crate::certs;
 use crate::lookup::TestDnsResolver;
 use crate::lookup::TesterImpl;
-use ginepro::pb::pong::Payload;
-use ginepro::pb::tester_client::TesterClient;
-use ginepro::pb::Ping;
 use ginepro::LoadBalancedChannelBuilder;
 use std::collections::HashSet;
 use std::sync::Arc;
+use tests::pb::pong::Payload;
+use tests::pb::tester_client::TesterClient;
+use tests::pb::Ping;
 use tokio::sync::Mutex;
 use tonic::transport::ClientTlsConfig;
 use tonic::transport::ServerTlsConfig;

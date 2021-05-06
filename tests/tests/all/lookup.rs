@@ -1,12 +1,12 @@
-use crate::test::TestServer;
-use ginepro::pb::pong::Payload;
-use ginepro::pb::tester_server::Tester;
-use ginepro::pb::tester_server::TesterServer;
-use ginepro::pb::{Ping, Pong};
 use ginepro::{LookupService, ServiceDefinition};
 use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tests::pb::pong::Payload;
+use tests::pb::tester_server::Tester;
+use tests::pb::tester_server::TesterServer;
+use tests::pb::{Ping, Pong};
+use tests::test_server::TestServer;
 use tokio::sync::{Mutex, RwLock};
 use tonic::transport::ServerTlsConfig;
 use tonic::Status;

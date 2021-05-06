@@ -1,0 +1,37 @@
+[package]
+name = "tests"
+version = "0.1.0"
+authors = ["Helge Hoff <helge.hoff@truelayer.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Local
+ginepro = { path = "../ginepro" }
+
+tonic = { version = "0.4", features = ["tls"] }
+tracing = { version = "0.1", features = ["log", "attributes"] }
+tracing-futures = "0.2"
+prost = "0.7"
+futures = "0.3.12"
+tokio-stream = { version = "0.1.2", features = ["net"] }
+tokio = { version = "1", features = ["full"] }
+hyper = "0.14"
+tower-service = "0.3"
+
+[build-dependencies]
+tonic-build = "0.4.2"
+
+[dev-dependencies]
+openssl = "0.10"
+tokio-rustls = "0.22"
+rustls = { version =  "0.19", features = ["dangerous_configuration"] }
+lazy_static = "1.4"
+reqwest = "0.11"
+tower = { version = "0.4", default-features = false, features = ["discover"] }
+anyhow = "1"
+trust-dns-resolver = "0.20"
+async-trait = "0.1"
+http = "0.2"
+tonic-health = "0.3.1"
