@@ -1,11 +1,11 @@
 use ginepro::{LookupService, ServiceDefinition};
+use shared_proto::pb::pong::Payload;
+use shared_proto::pb::tester_server::Tester;
+use shared_proto::pb::tester_server::TesterServer;
+use shared_proto::pb::{Ping, Pong};
 use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tests::pb::pong::Payload;
-use tests::pb::tester_server::Tester;
-use tests::pb::tester_server::TesterServer;
-use tests::pb::{Ping, Pong};
 use tests::test_server::TestServer;
 use tokio::sync::{Mutex, RwLock};
 use tonic::transport::ServerTlsConfig;

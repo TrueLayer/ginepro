@@ -1,12 +1,12 @@
-use crate::certs;
 use crate::lookup::TestDnsResolver;
 use crate::lookup::TesterImpl;
 use ginepro::LoadBalancedChannelBuilder;
+use shared_proto::pb::pong::Payload;
+use shared_proto::pb::tester_client::TesterClient;
+use shared_proto::pb::Ping;
 use std::collections::HashSet;
 use std::sync::Arc;
-use tests::pb::pong::Payload;
-use tests::pb::tester_client::TesterClient;
-use tests::pb::Ping;
+use tests::tls::{NoVerifier, TestSslCertificate};
 use tokio::sync::Mutex;
 use tonic::transport::ClientTlsConfig;
 use tonic::transport::ServerTlsConfig;
@@ -83,7 +83,7 @@ async fn load_balance_succeeds_with_churn_with_tls_enabled() {
     let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
     let sender = Arc::new(Mutex::new(sender));
 
-    let test_certificate = crate::certs::TestSslCertificate::generate();
+    let test_certificate = TestSslCertificate::generate();
 
     let ca: Vec<u8> = test_certificate.pem_certificate();
 
@@ -101,7 +101,7 @@ async fn load_balance_succeeds_with_churn_with_tls_enabled() {
 
     rustls_client_config
         .dangerous()
-        .set_certificate_verifier(std::sync::Arc::new(certs::NoVerifier {}));
+        .set_certificate_verifier(std::sync::Arc::new(NoVerifier {}));
 
     let config = ClientTlsConfig::new()
         .domain_name("test".to_string())

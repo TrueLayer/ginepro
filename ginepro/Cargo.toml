@@ -22,3 +22,7 @@ tracing-futures = "0.2"
 http = "0.2"
 prost = "0.7"
 openssl = "0.10.34"
+
+[dev-dependencies]
+shared-proto = { path = "../shared_proto" }
+tests = { path = "../tests" }
