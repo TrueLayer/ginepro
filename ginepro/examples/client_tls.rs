@@ -8,7 +8,10 @@ use tests::tls::TestSslCertificate;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Using openssl to generate the CA pem certificate that
+    // the client will trust.
     let pem = TestSslCertificate::generate().pem_certificate();
+
     let ca = Certificate::from_pem(pem);
 
     let tls = ClientTlsConfig::new().ca_certificate(ca);
