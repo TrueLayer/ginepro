@@ -20,7 +20,7 @@ static GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE: usize = 1024;
 /// #[tokio::main]
 /// async fn main() {
 ///     use ginepro::{LoadBalancedChannelBuilder,LoadBalancedChannel};
-///     use ginepro::pb::tester_client::TesterClient;
+///     use shared_proto::pb::tester_client::TesterClient;
 ///
 ///     let load_balanced_channel =
 ///     LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000)).await

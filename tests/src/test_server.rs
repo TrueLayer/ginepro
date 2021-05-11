@@ -63,7 +63,7 @@ impl TestServer {
     /// This enables you to construct a `TestServer` with multiple services.
     ///
     /// ```
-    ///  use tests::TestServer;
+    ///  use tests::test_server::TestServer;
     ///  use tonic::transport::Server;
     ///
     /// async fn build_test_server() {
