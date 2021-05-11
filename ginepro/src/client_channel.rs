@@ -1,5 +1,6 @@
 use crate::{
-    DnsResolver, GrpcServiceProbe, GrpcServiceProbeConfig, LookupService, ServiceDefinition,
+    service_probe::{GrpcServiceProbe, GrpcServiceProbeConfig},
+    DnsResolver, LookupService, ServiceDefinition,
 };
 use http::Request;
 use std::task::{Context, Poll};
@@ -14,8 +15,11 @@ use tonic::{body::BoxBody, transport::ClientTlsConfig};
 // We set the number high to avoid any blocking on our side.
 static GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE: usize = 1024;
 
-/// Implements tonic `GrpcService` for a client-side load balanced `Channel` (using `The Power of
+/// Implements tonic [`GrpcService`] for a client-side load balanced `Channel` (using `The Power of
 /// Two Choices`).
+///
+/// [`GrpcService`](tonic::client::GrpcService)
+///
 /// ```rust
 /// #[tokio::main]
 /// async fn main() {
@@ -52,22 +56,22 @@ impl GrpcService<BoxBody> for LoadBalancedChannel {
     }
 }
 
-/// Builder to configure a `LoadBalancedChannel`.
+/// Builder to configure a [`LoadBalancedChannel`].
 pub struct LoadBalancedChannelBuilder<T> {
     service_definition: ServiceDefinition,
     probe_interval: Option<Duration>,
     timeout: Option<Duration>,
     tls_config: Option<ClientTlsConfig>,
-    lookup_host: T,
+    lookup_service: T,
 }
 
 impl LoadBalancedChannelBuilder<DnsResolver> {
-    /// Set the `ServiceDefinition` of the gRPC server service
-    /// -  e.g. `payouts-api.core-banking.svc.cluster.local` and `5000`.
+    /// Set the [`ServiceDefinition`] of the gRPC server service
+    /// -  e.g. `my.service.uri` and `5000`.
     ///
-    /// All the service endpoints of a `ServiceDefinition` will be
-    /// constructed by resolving all ips from `ServiceDefinition::hostname`, and
-    /// using the portnumber `ServiceDefinition::port`.
+    /// All the service endpoints of a [`ServiceDefinition`] will be
+    /// constructed by resolving all ips from [`ServiceDefinition::hostname`], and
+    /// using the portnumber [`ServiceDefinition::port`].
     pub async fn new_with_service<H: Into<ServiceDefinition>>(
         service_definition: H,
     ) -> Result<LoadBalancedChannelBuilder<DnsResolver>, anyhow::Error> {
@@ -76,18 +80,17 @@ impl LoadBalancedChannelBuilder<DnsResolver> {
             probe_interval: None,
             timeout: None,
             tls_config: None,
-            lookup_host: DnsResolver::from_system_config().await?,
+            lookup_service: DnsResolver::from_system_config().await?,
         })
     }
 
-    /// Configure the channel to use tls.
-    /// A `tls_config` MUST be specified to use the `HTTPS` scheme.
-    pub fn lookup_host<T: LookupService + Send + Sync + 'static>(
+    /// Set a custom [`LookupService`].
+    pub fn lookup_service<T: LookupService + Send + Sync + 'static>(
         self,
-        lookup_host: T,
+        lookup_service: T,
     ) -> LoadBalancedChannelBuilder<T> {
         LoadBalancedChannelBuilder {
-            lookup_host,
+            lookup_service,
             service_definition: self.service_definition,
             probe_interval: self.probe_interval,
             tls_config: self.tls_config,
@@ -128,13 +131,13 @@ impl<T: LookupService + Send + Sync + 'static + Sized> LoadBalancedChannelBuilde
         }
     }
 
-    /// Construct a `LoadBalancedChannel` from the `LoadBalancedChannelBuilder` instance.
+    /// Construct a [`LoadBalancedChannel`] from the `LoadBalancedChannelBuilder` instance.
     pub fn channel(self) -> LoadBalancedChannel {
         let (channel, sender) = Channel::balance_channel(GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE);
 
         let config = GrpcServiceProbeConfig {
             service_definition: self.service_definition,
-            dns_lookup: self.lookup_host,
+            dns_lookup: self.lookup_service,
             endpoint_timeout: self.timeout,
             probe_interval: self
                 .probe_interval
