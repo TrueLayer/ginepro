@@ -1,23 +1,10 @@
 //! Implements [`LookupService`] for dns.
 
-use crate::ServiceDefinition;
+use crate::{LookupService, ServiceDefinition};
 use anyhow::Context;
 use std::collections::HashSet;
 use std::net::SocketAddr;
 use trust_dns_resolver::{system_conf, AsyncResolver, TokioAsyncResolver};
-
-/// Interface that provides functionality to
-/// acquire a list of ips given a valid host name.
-#[async_trait::async_trait]
-pub trait LookupService {
-    /// Return a list of unique `SockAddr` associated with the provided
-    /// `ServiceDefinition` containing the `hostname` `port` of the service.
-    /// If no ip addresses were resolved, an empty `HashSet` is returned.
-    async fn resolve_service_endpoints(
-        &self,
-        definition: &ServiceDefinition,
-    ) -> Result<HashSet<SocketAddr>, anyhow::Error>;
-}
 
 /// Implements [`LookupService`] by using DNS queries to lookup
 ///  [`ServiceDefinition::hostname`].

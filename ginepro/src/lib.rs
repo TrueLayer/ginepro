@@ -99,9 +99,11 @@
 
 mod balanced_channel;
 mod dns_resolver;
+mod lookup_service;
 mod service_definition;
 mod service_probe;
 
 pub use balanced_channel::*;
 pub use dns_resolver::*;
+pub use lookup_service::*;
 pub use service_definition::*;

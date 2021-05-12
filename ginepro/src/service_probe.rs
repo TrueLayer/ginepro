@@ -1,4 +1,4 @@
-use crate::{resolve::LookupService, ServiceDefinition};
+use crate::{LookupService, ServiceDefinition};
 use std::collections::HashSet;
 use std::net::SocketAddr;
 use tokio::sync::mpsc::Sender;
