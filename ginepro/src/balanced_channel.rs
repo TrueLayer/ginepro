@@ -1,3 +1,6 @@
+//! Provides the builder and implementation of [`GrpcService`] that enables
+//! periodic service discovery.
+
 use crate::{
     service_probe::{GrpcServiceProbe, GrpcServiceProbeConfig},
     DnsResolver, LookupService, ServiceDefinition,

@@ -26,7 +26,7 @@ ginepro = "0.1.0"
 The interface remains fairly the same as we implement all the logic for a drop-in replacement for
 tonic's `Channel`.
 
-```
+```rust
 // Using the `LoadBalancedChannel`.
 use ginepro::{LoadBalancedChannelBuilder, LoadBalancedChannel};
 use ginepro::pb::tester_client::TesterClient;

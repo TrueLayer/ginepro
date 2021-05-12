@@ -97,11 +97,13 @@
 //! endpoint changes can be sent.
 //! `ginepro` uses this message passing mechanism to report when servers are added and removed.
 
-mod client_channel;
-mod resolve;
-mod service;
+mod balanced_channel;
+mod dns_resolver;
+mod lookup_service;
+mod service_definition;
 mod service_probe;
 
-pub use client_channel::*;
-pub use resolve::*;
-pub use service::*;
+pub use balanced_channel::*;
+pub use dns_resolver::*;
+pub use lookup_service::*;
+pub use service_definition::*;
