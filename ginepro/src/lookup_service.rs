@@ -10,7 +10,7 @@ use crate::ServiceDefinition;
 #[async_trait::async_trait]
 pub trait LookupService {
     /// Return a list of unique [`SocketAddr`] associated with the provided
-    /// [`ServiceDefinition`] containing the `hostname` `port` of the service.
+    /// [`ServiceDefinition`](crate::ServiceDefinition) containing the `hostname` `port` of the service.
     /// If no ip addresses were resolved, an empty HashSet is returned.
     async fn resolve_service_endpoints(
         &self,
