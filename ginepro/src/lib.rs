@@ -1,30 +1,30 @@
-//! `ginepro` offers an enriched tonic [`Channel`](tonic::transport::Channel) using a with pluggable service discovery
-//! to periodcally update the active set of gRPC servers.
+//! `ginepro` offers an enriched tonic [`Channel`](tonic::transport::Channel) using a pluggable service discovery
+//! to periodcally update the active set of `gRPC` servers.
 //!
-//! # Example
-//! Simple example.
+//! # Simple example
 //!
 //! ```rust
 //! #[tokio::main]
 //! async fn main() {
-//!     use ginepro::{LoadBalancedChannelBuilder,LoadBalancedChannel};
+//!     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!
 //!     // Create a load balanced channel with the default lookup implementation.
-//!     let load_balanced_channel =
-//!     LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000)).await
-//!                                     .expect("failed to read system conf")
-//!                                     .channel();
+//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+//!         .await
+//!         .expect("failed to read system conf")
+//!         .channel();
 //!
 //!     let tester_client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
 //! }
 //! ```
-//! [`LoadBalancedChannel`] also allows pluggin in a different implementation of [`LookupService`].
+//!
+//! [`LoadBalancedChannel`] also allows plugging in a different implementation of [`LookupService`].
 //!
 //! ```rust
+//! use ginepro::{LookupService, ServiceDefinition};
 //! use std::collections::HashSet;
 //! use std::net::SocketAddr;
-//! use ginepro::{LookupService, ServiceDefinition};
 //!
 //! // This does nothing
 //! struct DummyLookupService;
@@ -39,16 +39,16 @@
 //!     }
 //! }
 //!
-//!
 //! #[tokio::main]
 //! async fn main() {
-//!     use ginepro::{LoadBalancedChannelBuilder,LoadBalancedChannel};
+//!     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!
-//!     let load_balanced_channel =
-//!     LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000)).await
-//!                                     .expect("failed to read system conf")
-//!                                     .lookup_service(DummyLookupService).channel();
+//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+//!         .await
+//!         .expect("failed to read system conf")
+//!         .lookup_service(DummyLookupService)
+//!         .channel();
 //!
 //!     let tester_client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
 //! }
@@ -58,14 +58,14 @@
 //! ```rust
 //! #[tokio::main]
 //! async fn main() {
-//!     use ginepro::{LoadBalancedChannelBuilder,LoadBalancedChannel};
+//!     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!
-//!     let load_balanced_channel =
-//!     LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000)).await
-//!                                     .expect("failed to read system conf")
-//!                                     .dns_probe_interval(std::time::Duration::from_secs(3))
-//!                                     .channel();
+//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+//!         .await
+//!         .expect("failed to read system conf")
+//!         .dns_probe_interval(std::time::Duration::from_secs(3))
+//!         .channel();
 //!
 //!     let tester_client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
 //! }
@@ -78,14 +78,14 @@
 //! ```rust
 //! #[tokio::main]
 //! async fn main() {
-//!     use ginepro::{LoadBalancedChannelBuilder,LoadBalancedChannel};
+//!     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!
-//!     let load_balanced_channel =
-//!     LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000)).await
-//!                                     .expect("failed to read system conf")
-//!                                     .timeout(std::time::Duration::from_secs(10))
-//!                                     .channel();
+//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+//!         .await
+//!         .expect("failed to read system conf")
+//!         .timeout(std::time::Duration::from_secs(10))
+//!         .channel();
 //!
 //!     let tester_client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
 //! }

@@ -5,8 +5,9 @@ use tokio::sync::mpsc::Sender;
 use tonic::transport::{channel::Endpoint, ClientTlsConfig};
 use tower::discover::Change;
 
-/// `GrpcServiceProbe` looks up IP addresses associated with the configured `host_name` every `probe_interval`.
-///  If a new IP address is discovered or an old one disappears it notifies the `tonic` gRPC client.
+/// [`GrpcServiceProbe`] looks up IP addresses associated with the configured `host_name`
+/// once every `probe_interval`.
+/// If a new IP address is discovered or an old one disappears it notifies the [`tonic`] gRPC client.
 ///
 /// The tonic load balancing side that is being notified work under the following assumptions:
 ///     * Tonic will never remove an endpoint from its set of servers to contact

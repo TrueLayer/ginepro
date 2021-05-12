@@ -10,7 +10,7 @@ pub struct ServiceDefinition {
 
 impl From<(&str, u16)> for ServiceDefinition {
     fn from(service: (&str, u16)) -> Self {
-        ServiceDefinition {
+        Self {
             hostname: service.0.to_string(),
             port: service.1,
         }

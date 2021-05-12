@@ -18,7 +18,7 @@ use tonic::{body::BoxBody, transport::ClientTlsConfig};
 // We set the number high to avoid any blocking on our side.
 static GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE: usize = 1024;
 
-/// Implements tonic [`GrpcService`] for a client-side load balanced `Channel` (using `The Power of
+/// Implements tonic [`GrpcService`] for a client-side load balanced [`Channel`] (using `The Power of
 /// Two Choices`).
 ///
 /// [`GrpcService`](tonic::client::GrpcService)
@@ -26,12 +26,14 @@ static GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE: usize = 1024;
 /// ```rust
 /// #[tokio::main]
 /// async fn main() {
-///     use ginepro::{LoadBalancedChannelBuilder,LoadBalancedChannel};
+///     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
 ///     use shared_proto::pb::tester_client::TesterClient;
 ///
-///     let load_balanced_channel =
-///     LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000)).await
-///                                     .expect("failed to read system conf").channel();
+///     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+///         .await
+///         .expect("failed to read system conf")
+///         .channel();
+///
 ///     let client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
 /// }
 /// ```
@@ -59,7 +61,7 @@ impl GrpcService<BoxBody> for LoadBalancedChannel {
     }
 }
 
-/// Builder to configure a [`LoadBalancedChannel`].
+/// Builder to configure and create a [`LoadBalancedChannel`].
 pub struct LoadBalancedChannelBuilder<T> {
     service_definition: ServiceDefinition,
     probe_interval: Option<Duration>,
@@ -134,7 +136,7 @@ impl<T: LookupService + Send + Sync + 'static + Sized> LoadBalancedChannelBuilde
         }
     }
 
-    /// Construct a [`LoadBalancedChannel`] from the `LoadBalancedChannelBuilder` instance.
+    /// Construct a [`LoadBalancedChannel`] from the [`LoadBalancedChannelBuilder`] instance.
     pub fn channel(self) -> LoadBalancedChannel {
         let (channel, sender) = Channel::balance_channel(GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE);
 
