@@ -1,4 +1,4 @@
-//! Defines the interface that [`LoadBalancedChannel`] requires in order
+//! Defines the interface that [`LoadBalancedChannel`](crate::LoadBalancedChannel) requires in order
 //! to resolve all the IP adresses for a given service.
 
 use std::{collections::HashSet, net::SocketAddr};
