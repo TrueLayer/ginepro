@@ -1,3 +1,5 @@
+//! Implements [`LookupService`] for dns.
+
 use crate::ServiceDefinition;
 use anyhow::Context;
 use std::collections::HashSet;
@@ -17,8 +19,8 @@ pub trait LookupService {
     ) -> Result<HashSet<SocketAddr>, anyhow::Error>;
 }
 
-/// Implements `LookupService` by resolving the `hostname`
-/// of the `ServiceDefinition` with a DNS lookup.
+/// Implements [`LookupService`] by using DNS queries to lookup
+///  [`ServiceDefinition::hostname`].
 pub struct DnsResolver {
     /// The trust-dns resolver which contacts the dns service directly such
     /// that we bypass os-specific dns caching.
@@ -26,7 +28,7 @@ pub struct DnsResolver {
 }
 
 impl DnsResolver {
-    /// Construct a new `DnsResolver` from env and system configration, e.g `resolv.conf`.
+    /// Construct a new [`DnsResolver`] from env and system configration, e.g `resolv.conf`.
     pub async fn from_system_config() -> Result<Self, anyhow::Error> {
         let (config, mut opts) = system_conf::read_system_conf()
             .context("failed to read dns services from system configuration")?;

@@ -1,7 +1,6 @@
 use ginepro::LoadBalancedChannelBuilder;
 
-use shared_proto::pb::echo_client::EchoClient;
-use shared_proto::pb::EchoRequest;
+use shared_proto::pb::{echo_client::EchoClient, EchoRequest};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

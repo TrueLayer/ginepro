@@ -36,7 +36,7 @@ async fn load_balance_succeeds_with_churn() {
     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
         .await
         .expect("failed to init")
-        .lookup_host(resolver.clone())
+        .lookup_service(resolver.clone())
         .dns_probe_interval(probe_interval)
         .channel();
     let mut client = TesterClient::new(load_balanced_channel);
@@ -112,7 +112,7 @@ async fn load_balance_succeeds_with_churn_with_tls_enabled() {
     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
         .await
         .expect("failed to init")
-        .lookup_host(resolver.clone())
+        .lookup_service(resolver.clone())
         .with_tls(config)
         .dns_probe_interval(probe_interval)
         .channel();
@@ -171,7 +171,7 @@ async fn load_balance_happy_path_scenario_calls_all_endpoints() {
     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
         .await
         .expect("failed to init")
-        .lookup_host(resolver.clone())
+        .lookup_service(resolver.clone())
         .dns_probe_interval(tokio::time::Duration::from_millis(3))
         .channel();
     let mut client = TesterClient::new(load_balanced_channel);
@@ -244,7 +244,7 @@ async fn connection_timeout_is_not_fatal() {
     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
         .await
         .expect("failed to init")
-        .lookup_host(resolver.clone())
+        .lookup_service(resolver.clone())
         .timeout(tokio::time::Duration::from_millis(500))
         .dns_probe_interval(probe_interval)
         .channel();
