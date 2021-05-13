@@ -28,11 +28,11 @@ tonic's `Channel`.
 
 ```rust
 // Using the `LoadBalancedChannel`.
-use ginepro::{LoadBalancedChannelBuilder, LoadBalancedChannel};
+use ginepro::LoadBalancedChannel;
 use ginepro::pb::tester_client::TesterClient;
 
 // Build a load-balanced channel given a service name and a port.
-let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(
+let load_balanced_channel = LoadBalancedChannel::builder(
     ("my_hostname", 5000)
   )
   .await

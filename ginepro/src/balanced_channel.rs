@@ -26,15 +26,15 @@ static GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE: usize = 1024;
 /// ```rust
 /// #[tokio::main]
 /// async fn main() {
-///     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
+///     use ginepro::LoadBalancedChannel;
 ///     use shared_proto::pb::tester_client::TesterClient;
 ///
-///     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+///     let load_balanced_channel = LoadBalancedChannel::builder(("my_hostname", 5000))
 ///         .await
 ///         .expect("failed to read system conf")
 ///         .channel();
 ///
-///     let client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
+///     let client = TesterClient::new(load_balanced_channel);
 /// }
 /// ```
 ///
@@ -44,6 +44,20 @@ pub struct LoadBalancedChannel(Channel);
 impl From<LoadBalancedChannel> for Channel {
     fn from(channel: LoadBalancedChannel) -> Self {
         channel.0
+    }
+}
+
+impl LoadBalancedChannel {
+    /// Start configuring a `LoadBalancedChannel` by passing in the [`ServiceDefinition`]
+    /// for the gRPC server service you want to call -  e.g. `my.service.uri` and `5000`.
+    ///
+    /// All the service endpoints of a [`ServiceDefinition`] will be
+    /// constructed by resolving IPs for [`ServiceDefinition::hostname`], and
+    /// using the port number [`ServiceDefinition::port`].
+    pub async fn builder<H: Into<ServiceDefinition>>(
+        service_definition: H,
+    ) -> Result<LoadBalancedChannelBuilder<DnsResolver>, anyhow::Error> {
+        LoadBalancedChannelBuilder::new_with_service(service_definition).await
     }
 }
 
