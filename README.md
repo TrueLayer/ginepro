@@ -41,7 +41,7 @@ let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(
 
 // Initialise a new gRPC client for the `Test` service
 // using the load-balanced channel as transport
-let grpc_client = TestClient::new(load_balanced_channel);
+let grpc_client = TesterClient::new(load_balanced_channel);
 ```
 
 #### License
