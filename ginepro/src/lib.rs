@@ -6,16 +6,16 @@
 //! ```rust
 //! #[tokio::main]
 //! async fn main() {
-//!     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
+//!     use ginepro::LoadBalancedChannel;
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!
 //!     // Create a load balanced channel with the default lookup implementation.
-//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+//!     let load_balanced_channel = LoadBalancedChannel::builder(("my_hostname", 5000))
 //!         .await
 //!         .expect("failed to read system conf")
 //!         .channel();
 //!
-//!     let tester_client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
+//!     let tester_client = TesterClient::new(load_balanced_channel);
 //! }
 //! ```
 //!
@@ -41,16 +41,16 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
+//!     use ginepro::LoadBalancedChannel;
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!
-//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+//!     let load_balanced_channel = LoadBalancedChannel::builder(("my_hostname", 5000))
 //!         .await
 //!         .expect("failed to read system conf")
 //!         .lookup_service(DummyLookupService)
 //!         .channel();
 //!
-//!     let tester_client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
+//!     let tester_client = TesterClient::new(load_balanced_channel);
 //! }
 //! ```
 //! For systems with lower churn, the probe interval can be lowered.
@@ -67,7 +67,7 @@
 //!         .dns_probe_interval(std::time::Duration::from_secs(3))
 //!         .channel();
 //!
-//!     let tester_client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
+//!     let tester_client = TesterClient::new(load_balanced_channel);
 //! }
 //! ```
 //!
@@ -78,16 +78,16 @@
 //! ```rust
 //! #[tokio::main]
 //! async fn main() {
-//!     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
+//!     use ginepro::LoadBalancedChannel;
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!
-//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+//!     let load_balanced_channel = LoadBalancedChannel::builder(("my_hostname", 5000))
 //!         .await
 //!         .expect("failed to read system conf")
 //!         .timeout(std::time::Duration::from_secs(10))
 //!         .channel();
 //!
-//!     let tester_client: TesterClient<LoadBalancedChannel> = TesterClient::new(load_balanced_channel);
+//!     let tester_client = TesterClient::new(load_balanced_channel);
 //! }
 //! ```
 //!

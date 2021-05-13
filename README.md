@@ -28,11 +28,11 @@ tonic's `Channel`.
 
 ```rust
 // Using the `LoadBalancedChannel`.
-use ginepro::{LoadBalancedChannelBuilder, LoadBalancedChannel};
+use ginepro::LoadBalancedChannel;
 use ginepro::pb::tester_client::TesterClient;
 
 // Build a load-balanced channel given a service name and a port.
-let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(
+let load_balanced_channel = LoadBalancedChannel::builder(
     ("my_hostname", 5000)
   )
   .await
@@ -41,7 +41,7 @@ let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(
 
 // Initialise a new gRPC client for the `Test` service
 // using the load-balanced channel as transport
-let grpc_client = TestClient::new(load_balanced_channel);
+let grpc_client = TesterClient::new(load_balanced_channel);
 ```
 
 #### License
