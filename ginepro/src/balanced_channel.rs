@@ -11,6 +11,7 @@ use tokio::time::Duration;
 use tonic::client::GrpcService;
 use tonic::transport::channel::Channel;
 use tonic::{body::BoxBody, transport::ClientTlsConfig};
+use tower::Service;
 
 // Determines the channel size of the channel we use
 // to report endpoint changes to tonic.
@@ -61,17 +62,17 @@ impl LoadBalancedChannel {
     }
 }
 
-impl GrpcService<BoxBody> for LoadBalancedChannel {
-    type ResponseBody = <Channel as GrpcService<BoxBody>>::ResponseBody;
+impl Service<http::Request<BoxBody>> for LoadBalancedChannel {
+    type Response = http::Response<<Channel as GrpcService<BoxBody>>::ResponseBody>;
     type Error = <Channel as GrpcService<BoxBody>>::Error;
     type Future = <Channel as GrpcService<BoxBody>>::Future;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.0.poll_ready(cx)
+        GrpcService::poll_ready(&mut self.0, cx)
     }
 
     fn call(&mut self, request: Request<BoxBody>) -> Self::Future {
-        self.0.call(request)
+        GrpcService::call(&mut self.0, request)
     }
 }
 
