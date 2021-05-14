@@ -45,7 +45,7 @@ let load_balanced_channel = LoadBalancedChannel::builder(
 let grpc_client = TesterClient::new(load_balanced_channel);
 ```
 
-For other examples, have a look at the [examples](ginepro/examples) directory.
+For more examples, have a look at the [examples](ginepro/examples) directory.
 
 #### License
 
