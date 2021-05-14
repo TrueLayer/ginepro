@@ -23,6 +23,7 @@ ginepro = "0.1.0"
 ```
 
 ## Getting started
+
 The interface remains fairly the same as we implement all the logic for a drop-in replacement for
 tonic's `Channel`.
 
@@ -43,6 +44,8 @@ let load_balanced_channel = LoadBalancedChannel::builder(
 // using the load-balanced channel as transport
 let grpc_client = TesterClient::new(load_balanced_channel);
 ```
+
+For more examples, have a look at the [examples](ginepro/examples) directory.
 
 #### License
 
