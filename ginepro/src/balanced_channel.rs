@@ -120,6 +120,21 @@ impl LoadBalancedChannelBuilder<DnsResolver> {
 }
 
 impl<T: LookupService + Send + Sync + 'static + Sized> LoadBalancedChannelBuilder<T> {
+    /// Returns a `LoadBalancedChannelBuilder` with the [`ServiceDefinition`] and
+    /// the customized [`LookupService`].
+    pub fn new<H: Into<ServiceDefinition>>(
+        service_definition: H,
+        lookup_service: T,
+    ) -> LoadBalancedChannelBuilder<T> {
+        Self {
+            service_definition: service_definition.into(),
+            probe_interval: None,
+            timeout: None,
+            tls_config: None,
+            lookup_service,
+        }
+    }
+
     /// Set the how often, the client should probe for changes to  gRPC server endpoints.
     /// Default interval in seconds is 10.
     pub fn dns_probe_interval(self, interval: Duration) -> LoadBalancedChannelBuilder<T> {
