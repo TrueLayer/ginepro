@@ -118,14 +118,14 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
 
         let remove_set: HashSet<SocketAddr> = self
             .endpoints
-            .difference(&endpoints)
-            .cloned()
+            .difference(endpoints)
+            .copied()
             .into_iter()
             .collect();
 
         let add_set: HashSet<SocketAddr> = endpoints
             .difference(&self.endpoints)
-            .cloned()
+            .copied()
             .into_iter()
             .collect();
 
