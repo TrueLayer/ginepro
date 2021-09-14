@@ -22,8 +22,8 @@ tracing = { version = "0.1", features = ["log", "attributes"] }
 tracing-futures = "0.2"
 http = "0.2"
 prost = "0.8"
-openssl = "0.10.34"
 
 [dev-dependencies]
 shared-proto = { path = "../shared_proto" }
 tests = { path = "../tests" }
+openssl = "0.10.34"
