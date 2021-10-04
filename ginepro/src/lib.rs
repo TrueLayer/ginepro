@@ -8,9 +8,12 @@
 //! async fn main() {
 //!     use ginepro::LoadBalancedChannel;
 //!     use shared_proto::pb::tester_client::TesterClient;
+//!     use std::convert::TryInto;
 //!
 //!     // Create a load balanced channel with the default lookup implementation.
-//!     let load_balanced_channel = LoadBalancedChannel::builder(("my_hostname", 5000))
+//!     let load_balanced_channel = LoadBalancedChannel::builder(
+//!             ("my.hostname", 5000).try_into().expect("invalid hostname")
+//!         )
 //!         .await
 //!         .expect("failed to read system conf")
 //!         .channel();
@@ -43,8 +46,11 @@
 //! async fn main() {
 //!     use ginepro::LoadBalancedChannel;
 //!     use shared_proto::pb::tester_client::TesterClient;
+//!     use std::convert::TryInto;
 //!
-//!     let load_balanced_channel = LoadBalancedChannel::builder(("my_hostname", 5000))
+//!     let load_balanced_channel = LoadBalancedChannel::builder(
+//!             ("my.hostname", 5000).try_into().expect("invalid hostname")
+//!         )
 //!         .await
 //!         .expect("failed to read system conf")
 //!         .lookup_service(DummyLookupService)
@@ -60,8 +66,11 @@
 //! async fn main() {
 //!     use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder};
 //!     use shared_proto::pb::tester_client::TesterClient;
+//!     use std::convert::TryInto;
 //!
-//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my_hostname", 5000))
+//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(
+//!             ("my.hostname", 5000).try_into().expect("invalid hostname")
+//!         )
 //!         .await
 //!         .expect("failed to read system conf")
 //!         .dns_probe_interval(std::time::Duration::from_secs(3))
@@ -80,8 +89,11 @@
 //! async fn main() {
 //!     use ginepro::LoadBalancedChannel;
 //!     use shared_proto::pb::tester_client::TesterClient;
+//!     use std::convert::TryInto;
 //!
-//!     let load_balanced_channel = LoadBalancedChannel::builder(("my_hostname", 5000))
+//!     let load_balanced_channel = LoadBalancedChannel::builder(
+//!             ("my.hostname", 5000).try_into().expect("invalid hostname")
+//!         )
 //!         .await
 //!         .expect("failed to read system conf")
 //!         .timeout(std::time::Duration::from_secs(10))

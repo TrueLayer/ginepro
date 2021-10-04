@@ -29,8 +29,11 @@ static GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE: usize = 1024;
 /// async fn main() {
 ///     use ginepro::LoadBalancedChannel;
 ///     use shared_proto::pb::tester_client::TesterClient;
+///     use std::convert::TryInto;
 ///
-///     let load_balanced_channel = LoadBalancedChannel::builder(("my_hostname", 5000))
+///     let load_balanced_channel = LoadBalancedChannel::builder(
+///             ("my.hostname", 5000).try_into().expect("invalid hostname")
+///         )
 ///         .await
 ///         .expect("failed to read system conf")
 ///         .channel();
@@ -55,8 +58,8 @@ impl LoadBalancedChannel {
     /// All the service endpoints of a [`ServiceDefinition`] will be
     /// constructed by resolving IPs for [`ServiceDefinition::hostname`], and
     /// using the port number [`ServiceDefinition::port`].
-    pub async fn builder<H: Into<ServiceDefinition>>(
-        service_definition: H,
+    pub async fn builder(
+        service_definition: ServiceDefinition,
     ) -> Result<LoadBalancedChannelBuilder<DnsResolver>, anyhow::Error> {
         LoadBalancedChannelBuilder::new_with_service(service_definition).await
     }
@@ -92,11 +95,11 @@ impl LoadBalancedChannelBuilder<DnsResolver> {
     /// All the service endpoints of a [`ServiceDefinition`] will be
     /// constructed by resolving all ips from [`ServiceDefinition::hostname`], and
     /// using the portnumber [`ServiceDefinition::port`].
-    pub async fn new_with_service<H: Into<ServiceDefinition>>(
-        service_definition: H,
+    pub async fn new_with_service(
+        service_definition: ServiceDefinition,
     ) -> Result<LoadBalancedChannelBuilder<DnsResolver>, anyhow::Error> {
         Ok(Self {
-            service_definition: service_definition.into(),
+            service_definition,
             probe_interval: None,
             timeout: None,
             tls_config: None,
@@ -158,7 +161,7 @@ impl<T: LookupService + Send + Sync + 'static + Sized> LoadBalancedChannelBuilde
         // Since we resolve the hostname to an IP, which is not a valid DNS name,
         // we have to set the hostname explicitly on the tls config,
         // otherwise the IP will be set as the domain name and tls handshake will fail.
-        tls_config = tls_config.domain_name(self.service_definition.hostname.clone());
+        tls_config = tls_config.domain_name(self.service_definition.hostname().clone());
 
         Self {
             tls_config: Some(tls_config),
