@@ -48,26 +48,29 @@ impl TryFrom<(&str, u16)> for ServiceDefinition {
 #[cfg(test)]
 mod test {
     use super::*;
+    use proptest::prop_compose;
 
-    #[test]
-    fn invalid_hostname_shall_fail() {
-        let hostnames = vec!["127.0.0.1[][][]", "+.+.+"];
-
-        for hostname in hostnames {
-            assert!(
-                ServiceDefinition::from_parts(hostname, 5000).is_err(),
-                "{} is valid when it shouldn't",
-                hostname
-            );
+    prop_compose! {
+        fn valid_hostname()(s in "[a-z.0-9*A-Z]") -> String {
+            s
         }
     }
 
-    #[test]
-    fn valid_hostname_shall_succeed() {
-        let hostnames = vec!["our.valid.fqdn", "mydns.com"];
+    prop_compose! {
+        fn invalid_hostname()(s in "[^a-z.0-9*A-Z]+") -> String {
+            s
+        }
+    }
 
-        for hostname in hostnames {
-            assert!(ServiceDefinition::from_parts(hostname, 5000).is_ok());
+    proptest::proptest! {
+        #[test]
+        fn valid_hostname_shall_succeed(hostname in valid_hostname()) {
+                proptest::prop_assert!(ServiceDefinition::from_parts(hostname, 5000).is_ok());
+        }
+
+        #[test]
+        fn invalid_hostname_shall_fail(hostname in invalid_hostname()) {
+                proptest::prop_assert!(ServiceDefinition::from_parts(hostname, 5000).is_err());
         }
     }
 }

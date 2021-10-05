@@ -27,3 +27,4 @@ openssl = "0.10.34"
 [dev-dependencies]
 shared-proto = { path = "../shared_proto" }
 tests = { path = "../tests" }
+proptest = "1.0.0"
