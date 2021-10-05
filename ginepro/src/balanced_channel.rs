@@ -162,7 +162,7 @@ impl<T: LookupService + Send + Sync + 'static + Sized> LoadBalancedChannelBuilde
         // Since we resolve the hostname to an IP, which is not a valid DNS name,
         // we have to set the hostname explicitly on the tls config,
         // otherwise the IP will be set as the domain name and tls handshake will fail.
-        tls_config = tls_config.domain_name(self.service_definition.hostname().clone());
+        tls_config = tls_config.domain_name(self.service_definition.hostname());
 
         Self {
             tls_config: Some(tls_config),
