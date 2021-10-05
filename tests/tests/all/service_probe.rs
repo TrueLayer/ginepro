@@ -1,11 +1,12 @@
 use crate::lookup::TestDnsResolver;
 use crate::lookup::TesterImpl;
-use ginepro::{LoadBalancedChannelBuilder, ServiceDefinition};
+use ginepro::{LoadBalancedChannelBuilder, LookupService, ServiceDefinition};
 use shared_proto::pb::pong::Payload;
 use shared_proto::pb::tester_client::TesterClient;
 use shared_proto::pb::Ping;
-use std::collections::HashSet;
+use std::net::AddrParseError;
 use std::sync::Arc;
+use std::{collections::HashSet, net::SocketAddr};
 use tests::tls::{NoVerifier, TestSslCertificate};
 use tokio::sync::Mutex;
 use tonic::transport::ClientTlsConfig;
@@ -34,7 +35,7 @@ async fn load_balance_succeeds_with_churn() {
     let probe_interval = tokio::time::Duration::from_millis(3);
 
     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(
-        ServiceDefinition::from_parts("test", 5000).unwrap(),
+        ServiceDefinition::from_parts("test.com", 5000).unwrap(),
     )
     .await
     .expect("failed to init")
@@ -106,13 +107,13 @@ async fn load_balance_succeeds_with_churn_with_tls_enabled() {
         .set_certificate_verifier(std::sync::Arc::new(NoVerifier {}));
 
     let config = ClientTlsConfig::new()
-        .domain_name("test".to_string())
+        .domain_name("test.com".to_string())
         .rustls_client_config(rustls_client_config);
 
     let probe_interval = tokio::time::Duration::from_millis(3);
 
     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(
-        ServiceDefinition::from_parts("test", 5000).unwrap(),
+        ServiceDefinition::from_parts("test.com", 5000).unwrap(),
     )
     .await
     .expect("failed to init")
@@ -292,4 +293,57 @@ async fn connection_timeout_is_not_fatal() {
         server,
         get_payload_raw(res.into_inner().payload.expect("no payload"))
     );
+}
+
+#[tokio::test]
+async fn builder_and_resolve_shall_fail_on_error() {
+    struct FailResolve;
+    #[async_trait::async_trait]
+    impl LookupService for FailResolve {
+        async fn resolve_service_endpoints(
+            &self,
+            _definition: &ServiceDefinition,
+        ) -> Result<HashSet<SocketAddr>, anyhow::Error> {
+            anyhow::bail!("could not reach dns")
+        }
+    }
+
+    LoadBalancedChannelBuilder::new_with_service(
+        ServiceDefinition::from_parts("www.test.com", 5000).unwrap(),
+    )
+    .await
+    .expect("failed to init")
+    .lookup_service(FailResolve)
+    .timeout(tokio::time::Duration::from_millis(500))
+    .build_and_resolve(None)
+    .await
+    .unwrap_err();
+}
+
+#[tokio::test]
+async fn builder_and_resolve_shall_succeed_when_ips_are_returned() {
+    struct SucceedResolve;
+    #[async_trait::async_trait]
+    impl LookupService for SucceedResolve {
+        async fn resolve_service_endpoints(
+            &self,
+            _definition: &ServiceDefinition,
+        ) -> Result<HashSet<SocketAddr>, anyhow::Error> {
+            Ok(vec!["127.0.0.1:8000".to_string()]
+                .into_iter()
+                .map(|s| s.parse::<SocketAddr>())
+                .collect::<Result<HashSet<SocketAddr>, AddrParseError>>()?)
+        }
+    }
+
+    assert!(LoadBalancedChannelBuilder::new_with_service(
+        ServiceDefinition::from_parts("test.com", 5000).unwrap(),
+    )
+    .await
+    .expect("failed to init")
+    .lookup_service(SucceedResolve)
+    .timeout(tokio::time::Duration::from_millis(500))
+    .build_and_resolve(None)
+    .await
+    .is_ok());
 }

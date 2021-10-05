@@ -5,6 +5,7 @@ use crate::{
     service_probe::{GrpcServiceProbe, GrpcServiceProbeConfig},
     DnsResolver, LookupService, ServiceDefinition,
 };
+use anyhow::Context as _;
 use http::Request;
 use std::task::{Context, Poll};
 use tokio::time::Duration;
@@ -190,5 +191,43 @@ impl<T: LookupService + Send + Sync + 'static + Sized> LoadBalancedChannelBuilde
         tokio::spawn(service_probe.probe());
 
         LoadBalancedChannel(channel)
+    }
+
+    /// Tries to resolve the set of IPs from the (Hostname)[`ServiceDefinition::hostname`]
+    /// within the given timeout before creating a [`LoadBalancedChannel`].
+    ///
+    /// If no timeout is specified it will default to 2 seconds.
+    pub async fn build_and_resolve<O: Into<Option<Duration>>>(
+        self,
+        timeout: O,
+    ) -> Result<LoadBalancedChannel, anyhow::Error> {
+        let (channel, sender) = Channel::balance_channel(GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE);
+
+        let config = GrpcServiceProbeConfig {
+            service_definition: self.service_definition,
+            dns_lookup: self.lookup_service,
+            endpoint_timeout: self.timeout,
+            probe_interval: self
+                .probe_interval
+                .unwrap_or_else(|| Duration::from_secs(10)),
+        };
+        let mut service_probe = GrpcServiceProbe::new_with_reporter(config, sender);
+
+        if let Some(tls_config) = self.tls_config {
+            service_probe = service_probe.with_tls(tls_config);
+        }
+
+        // Make sure we resolve the hostname once before we create the channel.
+        tokio::time::timeout(
+            timeout.into().unwrap_or_else(|| Duration::from_secs(2)),
+            service_probe.probe_once(),
+        )
+        .await
+        .context("timeout out while attempting to resolve IPs")?
+        .context("failed to resolve IPs")?;
+
+        tokio::spawn(service_probe.probe());
+
+        Ok(LoadBalancedChannel(channel))
     }
 }

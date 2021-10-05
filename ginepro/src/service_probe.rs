@@ -5,6 +5,14 @@ use tokio::sync::mpsc::Sender;
 use tonic::transport::{channel::Endpoint, ClientTlsConfig};
 use tower::discover::Change;
 
+#[derive(thiserror::Error, Debug)]
+pub enum ProbeError {
+    #[error("Failed to resolve ServiceDefinition")]
+    ResolveServiceDefinition(#[source] anyhow::Error),
+    #[error("Changeset sender closed")]
+    ChangesetSenderClosed(#[source] anyhow::Error),
+}
+
 /// [`GrpcServiceProbe`] looks up IP addresses associated with the configured `host_name`
 /// once every `probe_interval`.
 /// If a new IP address is discovered or an old one disappears it notifies the [`tonic`] gRPC client.
@@ -78,35 +86,50 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
         }
     }
 
-    /// Start probing the provided `host_name` for IP address changes.
+    /// Start probing the provided `hostname` for IP address changes.
     /// The function will error if the receiving end of the tonic balance channel
     /// is closed, e.g, the client has been deconstructed.
     /// Any other errors are seen as transient, and therefore retried after `self.probe_interval`.
     pub async fn probe(mut self) -> Result<(), anyhow::Error> {
         loop {
-            match self
-                .dns_lookup
-                .resolve_service_endpoints(&self.service_definition)
-                .await
-            {
-                Ok(endpoints) => {
-                    let changeset = self.create_changeset(&endpoints).await;
-
-                    // Report the changeset to `tonic` and commit the new endpoints
-                    // if we succeed to report the changeset.
-                    self.report_and_commit(changeset, endpoints).await.map_err(|e| {
-                        tracing::error!("Failed to report the discovered DNS changeset. The gRPC client has closed the channel therefore the DNS probe loop will exit.\n{:?}", e);
-                        e
-                    })?;
+            self.probe_once().await.or_else(|err| {
+                // Only terminate if the changeset channel has been closed.
+                if let ProbeError::ChangesetSenderClosed(_) = err {
+                    Err(err)
+                } else {
+                    Ok(())
                 }
-                Err(err) => {
-                    // We received an unrecoverable error, we just log it and continue runnning.
-                    tracing::warn!("failed to resolve ips from host: {:?}", err);
-                }
-            }
+            })?;
 
             tokio::time::sleep(self.probe_interval).await;
         }
+    }
+
+    /// Update tonic with a set of IPs that are retrieved by querying `hostname`.
+    pub async fn probe_once(&mut self) -> Result<(), ProbeError> {
+        match self
+            .dns_lookup
+            .resolve_service_endpoints(&self.service_definition)
+            .await
+        {
+            Ok(endpoints) => {
+                let changeset = self.create_changeset(&endpoints).await;
+
+                // Report the changeset to `tonic` and commit the new endpoints
+                // if we succeed to report the changeset.
+                self.report_and_commit(changeset, endpoints).await.map_err(|e| {
+                        tracing::error!("Failed to report the discovered DNS changeset. The gRPC client has closed the channel therefore the DNS probe loop will exit.\n{:?}", e);
+                        e
+                    })?;
+            }
+            Err(err) => {
+                return Err(ProbeError::ResolveServiceDefinition(
+                    err.context("failed to resolve ips from host"),
+                ));
+            }
+        }
+
+        Ok(())
     }
 
     /// Construct a changeset and report the endpoint changes to tonic.
@@ -159,10 +182,10 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
         &mut self,
         changeset: Vec<Change<SocketAddr, Endpoint>>,
         endpoints: HashSet<SocketAddr>,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<(), ProbeError> {
         for change in changeset {
             if self.endpoint_reporter.send(change).await.is_err() {
-                return Err(anyhow::anyhow!("Tried to report endpoint changes on a closed channel, this is probably due to the gRPC client being dropped."));
+                return Err(ProbeError::ChangesetSenderClosed(anyhow::anyhow!("Tried to report endpoint changes on a closed channel, this is probably due to the gRPC client being dropped.")));
             }
         }
 
