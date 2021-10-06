@@ -11,12 +11,10 @@
 //!     use std::convert::TryInto;
 //!
 //!     // Create a load balanced channel with the default lookup implementation.
-//!     let load_balanced_channel = LoadBalancedChannel::builder(
-//!             ("my.hostname", 5000).try_into().expect("invalid hostname")
-//!         )
+//!     let load_balanced_channel = LoadBalancedChannel::builder(("my.hostname", 5000))
+//!         .channel()
 //!         .await
-//!         .expect("failed to read system conf")
-//!         .channel();
+//!         .expect("failed to construct LoadBalancedChannel");
 //!
 //!     let tester_client = TesterClient::new(load_balanced_channel);
 //! }
@@ -48,13 +46,12 @@
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!     use std::convert::TryInto;
 //!
-//!     let load_balanced_channel = LoadBalancedChannel::builder(
-//!             ("my.hostname", 5000).try_into().expect("invalid hostname")
-//!         )
-//!         .await
-//!         .expect("failed to read system conf")
+//!     // Create a load balanced channel with the default lookup implementation.
+//!     let load_balanced_channel = LoadBalancedChannel::builder(("my.hostname", 5000))
 //!         .lookup_service(DummyLookupService)
-//!         .channel();
+//!         .channel()
+//!         .await
+//!         .expect("failed to construct LoadBalancedChannel");
 //!
 //!     let tester_client = TesterClient::new(load_balanced_channel);
 //! }
@@ -68,13 +65,11 @@
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!     use std::convert::TryInto;
 //!
-//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(
-//!             ("my.hostname", 5000).try_into().expect("invalid hostname")
-//!         )
-//!         .await
-//!         .expect("failed to read system conf")
+//!     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("my.hostname", 5000))
 //!         .dns_probe_interval(std::time::Duration::from_secs(3))
-//!         .channel();
+//!         .channel()
+//!         .await
+//!         .expect("failed to construct LoadBalancedChannel");
 //!
 //!     let tester_client = TesterClient::new(load_balanced_channel);
 //! }
@@ -91,13 +86,33 @@
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!     use std::convert::TryInto;
 //!
-//!     let load_balanced_channel = LoadBalancedChannel::builder(
-//!             ("my.hostname", 5000).try_into().expect("invalid hostname")
-//!         )
-//!         .await
-//!         .expect("failed to read system conf")
+//!     let load_balanced_channel = LoadBalancedChannel::builder(("my.hostname", 5000))
 //!         .timeout(std::time::Duration::from_secs(10))
-//!         .channel();
+//!         .channel()
+//!         .await
+//!         .expect("failed to construct LoadBalancedChannel");
+//!
+//!     let tester_client = TesterClient::new(load_balanced_channel);
+//! }
+//! ```
+//!
+//! It's also possible to eagerly resolve the service endpoints once before
+//! [`LoadBalancedChannel`] is constructed.
+//! .
+//!
+//! ```rust,no_run
+//! #[tokio::main]
+//! async fn main() {
+//!     use ginepro::LoadBalancedChannel;
+//!     use shared_proto::pb::tester_client::TesterClient;
+//!     use std::convert::TryInto;
+//!
+//!     let load_balanced_channel = LoadBalancedChannel::builder(("my.hostname", 5000))
+//!         .timeout(std::time::Duration::from_secs(10))
+//!         .resolve_eagerly(None)
+//!         .channel()
+//!         .await
+//!         .expect("failed to construct LoadBalancedChannel");
 //!
 //!     let tester_client = TesterClient::new(load_balanced_channel);
 //! }

@@ -1,5 +1,3 @@
-use std::convert::TryInto;
-
 use ginepro::LoadBalancedChannel;
 use tonic::transport::Certificate;
 use tonic::transport::ClientTlsConfig;
@@ -18,11 +16,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let tls = ClientTlsConfig::new().ca_certificate(ca);
 
-    let channel = LoadBalancedChannel::builder(("localhost", 5000_u16).try_into()?)
-        .await?
+    let channel = LoadBalancedChannel::builder(("localhost", 5000_u16))
         .with_tls(tls)
         .dns_probe_interval(std::time::Duration::from_secs(5))
-        .channel();
+        .channel()
+        .await?;
 
     let mut client = EchoClient::new(channel);
 
