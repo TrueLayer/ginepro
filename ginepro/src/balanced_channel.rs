@@ -193,13 +193,13 @@ where
                 .unwrap_or_else(|| Duration::from_secs(10)),
         };
 
-        let tls_config = self.tls_config.and_then(|mut tls_config| {
+        let tls_config = self.tls_config.map(|mut tls_config| {
             // Since we resolve the hostname to an IP, which is not a valid DNS name,
             // we have to set the hostname explicitly on the tls config,
             // otherwise the IP will be set as the domain name and tls handshake will fail.
             tls_config = tls_config.domain_name(config.service_definition.hostname());
 
-            Some(tls_config)
+            tls_config
         });
 
         let mut service_probe = GrpcServiceProbe::new_with_reporter(config, sender);
