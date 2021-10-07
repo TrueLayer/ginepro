@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use ginepro::LoadBalancedChannel;
 
 use anyhow::Context;
@@ -6,11 +8,13 @@ use shared_proto::pb::{echo_client::EchoClient, EchoRequest};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // By using the constructor `build_and_resolve` the hostname is resolved once and ensures
-    // that LoadBalancedChannel will have a non-empty set of IPs to contact before the program
-    // starts.
+    // By setting the resolution strategy to `Eagerly` the domain name is resolved
+    // before the channel is created and ensures
+    // that it will have a non-empty set of IPs to contact before the program starts.
     let channel = LoadBalancedChannel::builder(("localhost", 5000_u16))
-        .resolve_eagerly(None)
+        .resolution_strategy(ginepro::ResolutionStrategy::Eagerly {
+            timeout: Duration::from_secs(20),
+        })
         .channel()
         .await
         .context("failed to build LoadBalancedChannel")?;

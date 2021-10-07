@@ -62,10 +62,9 @@ impl LoadBalancedChannel {
     /// All the service endpoints of a [`ServiceDefinition`] will be
     /// constructed by resolving IPs for [`ServiceDefinition::hostname`], and
     /// using the port number [`ServiceDefinition::port`].
-    pub fn builder<S>(service_definition: S) -> LoadBalancedChannelBuilder<DnsResolver, S>
+    pub fn builder<S>(service_definition: S) -> LoadBalancedChannelBuilder<DnsResolver>
     where
-        S: TryInto<ServiceDefinition>,
-        S::Error: Into<anyhow::Error>,
+        S: TryInto<ServiceDefinition, Error = anyhow::Error> + 'static,
     {
         LoadBalancedChannelBuilder::new_with_service(service_definition)
     }
@@ -85,58 +84,68 @@ impl Service<http::Request<BoxBody>> for LoadBalancedChannel {
     }
 }
 
+/// Enumerates the different domain name resolution strategies that
+/// the [`LoadBalancedChannelBuilder`] supports.
+pub enum ResolutionStrategy {
+    /// Creates the channel without attempting to resolve
+    /// a set of initial IPs.
+    Lazily,
+    /// Tries to resolve the domain name before creating the channel
+    /// in order to start with a non-empty set of IPs.
+    Eagerly { timeout: Duration },
+}
+
 /// Builder to configure and create a [`LoadBalancedChannel`].
-pub struct LoadBalancedChannelBuilder<T, S> {
-    service_definition: S,
+pub struct LoadBalancedChannelBuilder<T> {
+    service_definition: Pin<Box<dyn Future<Output = Result<ServiceDefinition, anyhow::Error>>>>,
     probe_interval: Option<Duration>,
-    resolve_eagerly: Option<Duration>,
+    resolution_strategy: ResolutionStrategy,
     timeout: Option<Duration>,
     tls_config: Option<ClientTlsConfig>,
     lookup_service: Pin<Box<dyn Future<Output = Result<T, anyhow::Error>>>>,
 }
 
-impl<S> LoadBalancedChannelBuilder<DnsResolver, S> {
+impl LoadBalancedChannelBuilder<DnsResolver> {
     /// Set the [`ServiceDefinition`] of the gRPC server service
     /// -  e.g. `my.service.uri` and `5000`.
     ///
     /// All the service endpoints of a [`ServiceDefinition`] will be
     /// constructed by resolving all ips from [`ServiceDefinition::hostname`], and
     /// using the portnumber [`ServiceDefinition::port`].
-    pub fn new_with_service(service_definition: S) -> LoadBalancedChannelBuilder<DnsResolver, S> {
+    pub fn new_with_service<S>(service_definition: S) -> LoadBalancedChannelBuilder<DnsResolver>
+    where
+        S: TryInto<ServiceDefinition, Error = anyhow::Error> + 'static,
+    {
         Self {
-            service_definition,
+            service_definition: Box::pin(async { service_definition.try_into() }),
             probe_interval: None,
             timeout: None,
             tls_config: None,
             lookup_service: Box::pin(DnsResolver::from_system_config()),
-            resolve_eagerly: None,
+            resolution_strategy: ResolutionStrategy::Lazily,
         }
     }
 
     /// Set a custom [`LookupService`].
-    pub fn lookup_service<T: LookupService + Send + Sync + 'static>(
+    pub fn lookup_service<T: LookupService + Send + Sync + 'static, S>(
         self,
         lookup_service: T,
-    ) -> LoadBalancedChannelBuilder<T, S> {
+    ) -> LoadBalancedChannelBuilder<T> {
         LoadBalancedChannelBuilder {
             lookup_service: Box::pin(async { Ok(lookup_service) }),
             service_definition: self.service_definition,
             probe_interval: self.probe_interval,
             tls_config: self.tls_config,
             timeout: self.timeout,
-            resolve_eagerly: self.resolve_eagerly,
+            resolution_strategy: self.resolution_strategy,
         }
     }
 }
 
-impl<T: LookupService + Send + Sync + 'static + Sized, S> LoadBalancedChannelBuilder<T, S>
-where
-    S: TryInto<ServiceDefinition>,
-    S::Error: Into<anyhow::Error>,
-{
+impl<T: LookupService + Send + Sync + 'static + Sized> LoadBalancedChannelBuilder<T> {
     /// Set the how often, the client should probe for changes to  gRPC server endpoints.
     /// Default interval in seconds is 10.
-    pub fn dns_probe_interval(self, interval: Duration) -> LoadBalancedChannelBuilder<T, S> {
+    pub fn dns_probe_interval(self, interval: Duration) -> LoadBalancedChannelBuilder<T> {
         Self {
             probe_interval: Some(interval),
             ..self
@@ -144,34 +153,35 @@ where
     }
 
     /// Set a timeout that will be applied to every new `Endpoint`.
-    pub fn timeout(self, timeout: Duration) -> LoadBalancedChannelBuilder<T, S> {
+    pub fn timeout(self, timeout: Duration) -> LoadBalancedChannelBuilder<T> {
         Self {
             timeout: Some(timeout),
             ..self
         }
     }
 
-    /// Tries to resolve the set of IPs from the (Hostname)[`ServiceDefinition::hostname`]
-    /// within the given timeout before creating a [`LoadBalancedChannel`].
+    /// Set the [`ResolutionStrategy`].
     ///
-    /// If no timeout is specified it will default to 2 seconds.
-    pub fn resolve_eagerly<D: Into<Option<Duration>>>(
+    /// Default set to [`ResolutionStrategy::Lazily`].
+    ///
+    /// If [`ResolutionStrategy::Lazily`] the domain name will be resolved after-the-fact.
+    ///
+    /// Instead, if [`ResolutionStrategy::Eagerly`] is set the domain name will be attempted resolved
+    /// once before the [`LoadBalancedChannel`] is created, which ensures that the channel
+    /// will have a non-empty of IPs on startup. If it fails the channel creation will also fail.
+    pub fn resolution_strategy(
         self,
-        timeout: D,
-    ) -> LoadBalancedChannelBuilder<T, S> {
+        resolution_strategy: ResolutionStrategy,
+    ) -> LoadBalancedChannelBuilder<T> {
         Self {
-            resolve_eagerly: Some(
-                timeout
-                    .into()
-                    .unwrap_or_else(|| std::time::Duration::from_secs(2)),
-            ),
+            resolution_strategy,
             ..self
         }
     }
 
     /// Configure the channel to use tls.
     /// A `tls_config` MUST be specified to use the `HTTPS` scheme.
-    pub fn with_tls(self, tls_config: ClientTlsConfig) -> LoadBalancedChannelBuilder<T, S> {
+    pub fn with_tls(self, tls_config: ClientTlsConfig) -> LoadBalancedChannelBuilder<T> {
         Self {
             tls_config: Some(tls_config),
             ..self
@@ -185,7 +195,7 @@ where
         let lookup_service = self.lookup_service.await?;
 
         let config = GrpcServiceProbeConfig {
-            service_definition: self.service_definition.try_into().map_err(Into::into)?,
+            service_definition: self.service_definition.await?,
             dns_lookup: lookup_service,
             endpoint_timeout: self.timeout,
             probe_interval: self
@@ -208,7 +218,7 @@ where
             service_probe = service_probe.with_tls(tls_config);
         }
 
-        if let Some(timeout) = self.resolve_eagerly {
+        if let ResolutionStrategy::Eagerly { timeout } = self.resolution_strategy {
             // Make sure we resolve the hostname once before we create the channel.
             tokio::time::timeout(timeout, service_probe.probe_once())
                 .await
