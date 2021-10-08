@@ -110,7 +110,7 @@
 //!
 //!     let load_balanced_channel = LoadBalancedChannel::builder(("my.hostname", 5000))
 //!         .timeout(std::time::Duration::from_secs(10))
-//!          .resolution_strategy(ginepro::ResolutionStrategy::Eagerly {
+//!          .resolution_strategy(ginepro::ResolutionStrategy::Eager {
 //!              timeout: Duration::from_secs(20),
 //!          })
 //!         .channel()

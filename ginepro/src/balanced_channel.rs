@@ -90,10 +90,10 @@ impl Service<http::Request<BoxBody>> for LoadBalancedChannel {
 pub enum ResolutionStrategy {
     /// Creates the channel without attempting to resolve
     /// a set of initial IPs.
-    Lazily,
+    Lazy,
     /// Tries to resolve the domain name before creating the channel
     /// in order to start with a non-empty set of IPs.
-    Eagerly { timeout: Duration },
+    Eager { timeout: Duration },
 }
 
 /// Builder to configure and create a [`LoadBalancedChannel`].
@@ -124,7 +124,7 @@ where
             timeout: None,
             tls_config: None,
             lookup_service: Box::pin(DnsResolver::from_system_config()),
-            resolution_strategy: ResolutionStrategy::Lazily,
+            resolution_strategy: ResolutionStrategy::Lazy,
         }
     }
 
@@ -168,11 +168,11 @@ where
 
     /// Set the [`ResolutionStrategy`].
     ///
-    /// Default set to [`ResolutionStrategy::Lazily`].
+    /// Default set to [`ResolutionStrategy::Lazy`].
     ///
-    /// If [`ResolutionStrategy::Lazily`] the domain name will be resolved after-the-fact.
+    /// If [`ResolutionStrategy::Lazy`] the domain name will be resolved after-the-fact.
     ///
-    /// Instead, if [`ResolutionStrategy::Eagerly`] is set the domain name will be attempted resolved
+    /// Instead, if [`ResolutionStrategy::Eager`] is set the domain name will be attempted resolved
     /// once before the [`LoadBalancedChannel`] is created, which ensures that the channel
     /// will have a non-empty of IPs on startup. If it fails the channel creation will also fail.
     pub fn resolution_strategy(
@@ -234,7 +234,7 @@ where
             service_probe = service_probe.with_tls(tls_config);
         }
 
-        if let ResolutionStrategy::Eagerly { timeout } = self.resolution_strategy {
+        if let ResolutionStrategy::Eager { timeout } = self.resolution_strategy {
             // Make sure we resolve the hostname once before we create the channel.
             tokio::time::timeout(timeout, service_probe.probe_once())
                 .await

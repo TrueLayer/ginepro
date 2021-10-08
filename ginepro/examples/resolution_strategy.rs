@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // before the channel is created and ensures
     // that it will have a non-empty set of IPs to contact before the program starts.
     let channel = LoadBalancedChannel::builder(("localhost", 5000_u16))
-        .resolution_strategy(ginepro::ResolutionStrategy::Eagerly {
+        .resolution_strategy(ginepro::ResolutionStrategy::Eager {
             timeout: Duration::from_secs(20),
         })
         .channel()
