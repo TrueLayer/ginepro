@@ -36,9 +36,8 @@ use ginepro::pb::tester_client::TesterClient;
 let load_balanced_channel = LoadBalancedChannel::builder(
     ("my_hostname", 5000)
   )
-  .await
-  .expect("Failed to initialise the DNS resolver.")
-  .channel();
+  .channel()
+  .await.expect("failed to construct LoadBalancedChannel");
 
 // Initialise a new gRPC client for the `Test` service
 // using the load-balanced channel as transport
