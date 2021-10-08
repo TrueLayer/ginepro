@@ -35,14 +35,14 @@ impl LookupService for DnsResolver {
         &self,
         definition: &ServiceDefinition,
     ) -> Result<HashSet<SocketAddr>, anyhow::Error> {
-        match self.dns.lookup_ip(definition.hostname.as_ref()).await {
+        match self.dns.lookup_ip(definition.hostname()).await {
             Ok(lookup) => {
                 tracing::debug!("dns query expires in: {:?}", lookup.valid_until());
                 Ok(lookup
                     .iter()
                     .map(|ip_addr| {
                         tracing::debug!("result: ip {}", ip_addr);
-                        (ip_addr, definition.port).into()
+                        (ip_addr, definition.port()).into()
                     })
                     .collect())
             }

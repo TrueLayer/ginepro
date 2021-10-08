@@ -1,11 +1,12 @@
 use crate::lookup::TestDnsResolver;
 use crate::lookup::TesterImpl;
-use ginepro::LoadBalancedChannelBuilder;
+use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder, LookupService, ServiceDefinition};
 use shared_proto::pb::pong::Payload;
 use shared_proto::pb::tester_client::TesterClient;
 use shared_proto::pb::Ping;
-use std::collections::HashSet;
 use std::sync::Arc;
+use std::{collections::HashSet, net::SocketAddr};
+use std::{net::AddrParseError, time::Duration};
 use tests::tls::{NoVerifier, TestSslCertificate};
 use tokio::sync::Mutex;
 use tonic::transport::ClientTlsConfig;
@@ -33,12 +34,12 @@ async fn load_balance_succeeds_with_churn() {
     let mut resolver = TestDnsResolver::default();
     let probe_interval = tokio::time::Duration::from_millis(3);
 
-    let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
-        .await
-        .expect("failed to init")
+    let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test.com", 5000))
         .lookup_service(resolver.clone())
         .dns_probe_interval(probe_interval)
-        .channel();
+        .channel()
+        .await
+        .expect("failed to init");
     let mut client = TesterClient::new(load_balanced_channel);
 
     let servers: Vec<String> = (0..10).into_iter().map(|s| s.to_string()).collect();
@@ -104,18 +105,18 @@ async fn load_balance_succeeds_with_churn_with_tls_enabled() {
         .set_certificate_verifier(std::sync::Arc::new(NoVerifier {}));
 
     let config = ClientTlsConfig::new()
-        .domain_name("test".to_string())
+        .domain_name("test.com".to_string())
         .rustls_client_config(rustls_client_config);
 
     let probe_interval = tokio::time::Duration::from_millis(3);
 
-    let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
-        .await
-        .expect("failed to init")
+    let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test.com", 5000))
         .lookup_service(resolver.clone())
         .with_tls(config)
         .dns_probe_interval(probe_interval)
-        .channel();
+        .channel()
+        .await
+        .expect("failed to init");
     let mut client = TesterClient::new(load_balanced_channel);
 
     let servers: Vec<String> = (0..10).into_iter().map(|s| s.to_string()).collect();
@@ -169,11 +170,11 @@ async fn load_balance_happy_path_scenario_calls_all_endpoints() {
     let mut resolver = TestDnsResolver::default();
 
     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
-        .await
-        .expect("failed to init")
         .lookup_service(resolver.clone())
         .dns_probe_interval(tokio::time::Duration::from_millis(3))
-        .channel();
+        .channel()
+        .await
+        .expect("failed to init");
     let mut client = TesterClient::new(load_balanced_channel);
 
     resolver
@@ -242,12 +243,12 @@ async fn connection_timeout_is_not_fatal() {
     let probe_interval = tokio::time::Duration::from_millis(3);
 
     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
-        .await
-        .expect("failed to init")
         .lookup_service(resolver.clone())
         .timeout(tokio::time::Duration::from_millis(500))
         .dns_probe_interval(probe_interval)
-        .channel();
+        .channel()
+        .await
+        .expect("failed to init");
     let mut client = TesterClient::new(load_balanced_channel);
 
     resolver
@@ -283,5 +284,58 @@ async fn connection_timeout_is_not_fatal() {
     assert_eq!(
         server,
         get_payload_raw(res.into_inner().payload.expect("no payload"))
+    );
+}
+
+#[tokio::test]
+async fn builder_and_resolve_shall_fail_on_error() {
+    struct FailResolve;
+    #[async_trait::async_trait]
+    impl LookupService for FailResolve {
+        async fn resolve_service_endpoints(
+            &self,
+            _definition: &ServiceDefinition,
+        ) -> Result<HashSet<SocketAddr>, anyhow::Error> {
+            anyhow::bail!("could not reach dns")
+        }
+    }
+
+    LoadBalancedChannel::builder(("www.test.com", 5000))
+        .lookup_service(FailResolve)
+        .timeout(tokio::time::Duration::from_millis(500))
+        .resolution_strategy(ginepro::ResolutionStrategy::Eager {
+            timeout: Duration::from_secs(20),
+        })
+        .channel()
+        .await
+        .unwrap_err();
+}
+
+#[tokio::test]
+async fn builder_and_resolve_shall_succeed_when_ips_are_returned() {
+    struct SucceedResolve;
+    #[async_trait::async_trait]
+    impl LookupService for SucceedResolve {
+        async fn resolve_service_endpoints(
+            &self,
+            _definition: &ServiceDefinition,
+        ) -> Result<HashSet<SocketAddr>, anyhow::Error> {
+            Ok(vec!["127.0.0.1:8000".to_string()]
+                .into_iter()
+                .map(|s| s.parse::<SocketAddr>())
+                .collect::<Result<HashSet<SocketAddr>, AddrParseError>>()?)
+        }
+    }
+
+    assert!(
+        LoadBalancedChannel::builder(ServiceDefinition::from_parts("test.com", 5000).unwrap(),)
+            .lookup_service(SucceedResolve)
+            .timeout(tokio::time::Duration::from_millis(500))
+            .resolution_strategy(ginepro::ResolutionStrategy::Eager {
+                timeout: Duration::from_secs(20),
+            })
+            .channel()
+            .await
+            .is_ok()
     );
 }
