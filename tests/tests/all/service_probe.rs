@@ -4,9 +4,9 @@ use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder, LookupService, Se
 use shared_proto::pb::pong::Payload;
 use shared_proto::pb::tester_client::TesterClient;
 use shared_proto::pb::Ping;
-use std::net::AddrParseError;
 use std::sync::Arc;
 use std::{collections::HashSet, net::SocketAddr};
+use std::{net::AddrParseError, time::Duration};
 use tests::tls::{NoVerifier, TestSslCertificate};
 use tokio::sync::Mutex;
 use tonic::transport::ClientTlsConfig;
@@ -303,7 +303,9 @@ async fn builder_and_resolve_shall_fail_on_error() {
     LoadBalancedChannel::builder(("www.test.com", 5000))
         .lookup_service(FailResolve)
         .timeout(tokio::time::Duration::from_millis(500))
-        .resolve_eagerly(None)
+        .resolution_strategy(ginepro::ResolutionStrategy::Eagerly {
+            timeout: Duration::from_secs(20),
+        })
         .channel()
         .await
         .unwrap_err();
@@ -325,13 +327,15 @@ async fn builder_and_resolve_shall_succeed_when_ips_are_returned() {
         }
     }
 
-    assert!(LoadBalancedChannelBuilder::new_with_service(
-        ServiceDefinition::from_parts("test.com", 5000).unwrap(),
-    )
-    .lookup_service(SucceedResolve)
-    .timeout(tokio::time::Duration::from_millis(500))
-    .resolve_eagerly(None)
-    .channel()
-    .await
-    .is_ok());
+    assert!(
+        LoadBalancedChannel::builder(ServiceDefinition::from_parts("test.com", 5000).unwrap(),)
+            .lookup_service(SucceedResolve)
+            .timeout(tokio::time::Duration::from_millis(500))
+            .resolution_strategy(ginepro::ResolutionStrategy::Eagerly {
+                timeout: Duration::from_secs(20),
+            })
+            .channel()
+            .await
+            .is_ok()
+    );
 }

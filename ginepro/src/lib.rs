@@ -103,13 +103,16 @@
 //! ```rust,no_run
 //! #[tokio::main]
 //! async fn main() {
-//!     use ginepro::LoadBalancedChannel;
+//!     use ginepro::{LoadBalancedChannel, ResolutionStrategy};
 //!     use shared_proto::pb::tester_client::TesterClient;
+//!     use std::time::Duration;
 //!     use std::convert::TryInto;
 //!
 //!     let load_balanced_channel = LoadBalancedChannel::builder(("my.hostname", 5000))
 //!         .timeout(std::time::Duration::from_secs(10))
-//!         .resolve_eagerly(None)
+//!          .resolution_strategy(ginepro::ResolutionStrategy::Eagerly {
+//!              timeout: Duration::from_secs(20),
+//!          })
 //!         .channel()
 //!         .await
 //!         .expect("failed to construct LoadBalancedChannel");
