@@ -1,17 +1,23 @@
-use anyhow::Context;
+use std::time::Duration;
+
 use ginepro::LoadBalancedChannel;
+
+use anyhow::Context;
 
 use shared_proto::pb::{echo_client::EchoClient, EchoRequest};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a load balanced channel that connects to localhost:5000.
-    // Here the service discovery will update the set of servers every 5 seconds.
+    // By setting the resolution strategy to `Eagerly` the domain name is resolved
+    // before the channel is created and ensures
+    // that it will have a non-empty set of IPs to contact before the program starts.
     let channel = LoadBalancedChannel::builder(("localhost", 5000_u16))
-        .dns_probe_interval(std::time::Duration::from_secs(5))
+        .resolution_strategy(ginepro::ResolutionStrategy::Eager {
+            timeout: Duration::from_secs(20),
+        })
         .channel()
         .await
-        .context("failed to construct LoadBalancedChannel")?;
+        .context("failed to build LoadBalancedChannel")?;
 
     // Use the channel created above to drive the communication in EchoClient.
     let mut client = EchoClient::new(channel);

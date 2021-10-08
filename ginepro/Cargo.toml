@@ -1,6 +1,6 @@
 [package]
 name = "ginepro"
-version = "0.1.6-alpha.0"
+version = "0.2.1-alpha.0"
 authors = ["Helge Hoff <helge.hoff@truelayer.com>"]
 edition = "2018"
 description = "A client-side gRPC channel implementation for tonic"
@@ -22,8 +22,10 @@ tracing = { version = "0.1", features = ["log", "attributes"] }
 tracing-futures = "0.2"
 http = "0.2"
 prost = "0.8"
+thiserror = "1.0.29"
 
 [dev-dependencies]
 shared-proto = { path = "../shared_proto" }
 tests = { path = "../tests" }
 openssl = "0.10.34"
+proptest = "1.0.0"
