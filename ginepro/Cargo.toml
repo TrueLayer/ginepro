@@ -1,8 +1,8 @@
 [package]
 name = "ginepro"
-version = "0.2.1-alpha.0"
+version = "0.3"
 authors = ["Helge Hoff <helge.hoff@truelayer.com>"]
-edition = "2018"
+edition = "2021"
 description = "A client-side gRPC channel implementation for tonic"
 repository = "https://github.com/TrueLayer/ginepro"
 license = "MIT OR Apache-2.0"
@@ -11,7 +11,7 @@ categories = ["asynchronous", "web-programming"]
 readme = "../README.md"
 
 [dependencies]
-tonic = { version = "0.5", features = ["tls"] }
+tonic = { version = "0.6", features = ["tls"] }
 tower = { version = "0.4", default-features = false, features = ["discover"] }
 tower-service = "0.3"
 anyhow = "1"
@@ -21,7 +21,7 @@ async-trait = "0.1"
 tracing = { version = "0.1", features = ["log", "attributes"] }
 tracing-futures = "0.2"
 http = "0.2"
-prost = "0.8"
+prost = "0.9"
 thiserror = "1.0.29"
 
 [dev-dependencies]
