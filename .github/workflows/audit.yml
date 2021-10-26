@@ -16,6 +16,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      # Ensure that the latest version of Cargo is installed
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
