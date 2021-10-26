@@ -213,12 +213,6 @@ where
                 .unwrap_or_else(|| Duration::from_secs(10)),
         };
 
-        // StdErr -> Box<dyn stderr> -> anyhow
-        // anyhow -> Box<dyn stderr> -> anyhow
-        // anyhow::Error -> Box<dyn stderr>
-        // anyhow -> stderr
-        // Infallible
-
         let tls_config = self.tls_config.map(|mut tls_config| {
             // Since we resolve the hostname to an IP, which is not a valid DNS name,
             // we have to set the hostname explicitly on the tls config,
