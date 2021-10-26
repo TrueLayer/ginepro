@@ -22,13 +22,7 @@ jobs:
           toolchain: stable
           profile: minimal
           override: true
-      - name: Install Cargo audit
-        uses: actions-rs/cargo@v1
+      - uses: actions-rs/audit-check@v1
         with:
-          command: install
-          args: cargo-audit
-      - name: Cargo audit
-        uses: actions-rs/cargo@v1
-        with:
-          command: audit
+          token: ${{ secrets.GITHUB_TOKEN }}
 
