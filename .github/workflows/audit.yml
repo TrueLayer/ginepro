@@ -19,7 +19,8 @@ jobs:
       - name: Install Cargo audit
         uses: actions-rs/cargo@v1
         with:
-          command: install cargo-audit
+          command: install
+          args: cargo-audit
       - name: Cargo audit
         uses: actions-rs/cargo@v1
         with:
