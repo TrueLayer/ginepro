@@ -16,7 +16,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      - uses: actions-rs/audit-check@v1
+      - name: Install Cargo audit
+        uses: actions-rs/cargo@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          command: install cargo-audit
+      - name: Cargo audit
+        uses: actions-rs/cargo@v1
+        with:
+          command: audit
 
