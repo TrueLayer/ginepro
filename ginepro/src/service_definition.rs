@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use anyhow::Context;
 
 /// Defines a gRPC service with a `hostname` and a `port`.
@@ -37,10 +35,28 @@ impl ServiceDefinition {
     }
 }
 
+/// ```
+/// let sd = ginepro::ServiceDefinition::try_from(("localhost", 8090)).unwrap();
+/// assert_eq!(sd.hostname(), "localhost");
+/// assert_eq!(sd.port(), 8090);
+/// ```
 impl TryFrom<(&str, u16)> for ServiceDefinition {
     type Error = anyhow::Error;
 
     fn try_from((hostname, port): (&str, u16)) -> Result<Self, Self::Error> {
+        Self::from_parts(hostname, port)
+    }
+}
+
+/// ```
+/// let sd = ginepro::ServiceDefinition::try_from((String::from("localhost"), 8090)).unwrap();
+/// assert_eq!(sd.hostname(), "localhost");
+/// assert_eq!(sd.port(), 8090);
+/// ```
+impl TryFrom<(String, u16)> for ServiceDefinition {
+    type Error = anyhow::Error;
+
+    fn try_from((hostname, port): (String, u16)) -> Result<Self, Self::Error> {
         Self::from_parts(hostname, port)
     }
 }
