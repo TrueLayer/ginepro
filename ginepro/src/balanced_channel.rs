@@ -97,13 +97,13 @@ pub enum ResolutionStrategy {
 }
 
 /// Builder to configure and create a [`LoadBalancedChannel`].
-pub struct LoadBalancedChannelBuilder<T, S> {
+pub struct LoadBalancedChannelBuilder<T: Send, S> {
     service_definition: S,
     probe_interval: Option<Duration>,
     resolution_strategy: ResolutionStrategy,
     timeout: Option<Duration>,
     tls_config: Option<ClientTlsConfig>,
-    lookup_service: Pin<Box<dyn Future<Output = Result<T, anyhow::Error>>>>,
+    lookup_service: Pin<Box<dyn Future<Output = Result<T, anyhow::Error>> + Send>>,
 }
 
 impl<S> LoadBalancedChannelBuilder<DnsResolver, S>
