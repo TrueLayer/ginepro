@@ -8,8 +8,8 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tonic = "0.6"
-prost = "0.9"
+tonic = "0.7"
+prost = "0.10"
 
 [build-dependencies]
-tonic-build = "0.6"
+tonic-build = "0.7"
