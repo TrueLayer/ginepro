@@ -108,17 +108,3 @@ fn generate_ssl_certificate(private_key: &Rsa<Private>) -> X509 {
 
     builder.build()
 }
-
-// pub struct NoVerifier;
-
-// impl ServerCertVerifier for NoVerifier {
-//     fn verify_server_cert(
-//         &self,
-//         _roots: &RootCertStore,
-//         _presented_certs: &[rustls::Certificate],
-//         _dns_name: DNSNameRef,
-//         _ocsp_response: &[u8],
-//     ) -> Result<ServerCertVerified, TLSError> {
-//         Ok(ServerCertVerified::assertion())
-//     }
-// }
