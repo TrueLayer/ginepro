@@ -23,7 +23,7 @@ hyper = "0.14"
 tower-service = "0.3"
 tower-layer = "0.3"
 rustls = { version =  "0.20", features = ["dangerous_configuration"] }
-tower-http = { version = "0.2", features = ["add-extension"] }
+tower-http = { version = "0.3", features = ["add-extension"] }
 
 [dev-dependencies]
 lazy_static = "1.4"
