@@ -7,10 +7,7 @@ use shared_proto::pb::Ping;
 use std::sync::Arc;
 use std::{collections::HashSet, net::SocketAddr};
 use std::{net::AddrParseError, time::Duration};
-use tests::tls::{NoVerifier, TestSslCertificate};
 use tokio::sync::Mutex;
-use tonic::transport::ClientTlsConfig;
-use tonic::transport::ServerTlsConfig;
 
 fn get_payload_raw(payload: Payload) -> String {
     match payload {
@@ -72,82 +69,6 @@ async fn load_balance_succeeds_with_churn() {
         resolver.remove_server(server).await;
         // Give time to the DNS probe to run
         tokio::time::sleep(probe_interval * 3).await;
-    }
-
-    // Assert
-    assert_eq!(servers, servers_called);
-}
-
-#[tokio::test]
-async fn load_balance_succeeds_with_churn_with_tls_enabled() {
-    // Arrange
-    let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
-    let sender = Arc::new(Mutex::new(sender));
-
-    let test_certificate = TestSslCertificate::generate();
-
-    let ca: Vec<u8> = test_certificate.pem_certificate();
-
-    let pkey = test_certificate.pem_private_key();
-
-    let identity = tonic::transport::Identity::from_pem(&ca, &pkey);
-
-    let server_config = ServerTlsConfig::new().identity(identity);
-
-    let mut resolver = TestDnsResolver::new_with_tls(server_config);
-
-    let mut rustls_client_config = rustls::ClientConfig::new();
-
-    rustls_client_config.set_protocols(&["h2".to_string().as_bytes().to_vec()]);
-
-    rustls_client_config
-        .dangerous()
-        .set_certificate_verifier(std::sync::Arc::new(NoVerifier {}));
-
-    let config = ClientTlsConfig::new()
-        .domain_name("test.com".to_string())
-        .rustls_client_config(rustls_client_config);
-
-    let probe_interval = tokio::time::Duration::from_millis(3);
-
-    let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test.com", 5000))
-        .lookup_service(resolver.clone())
-        .with_tls(config)
-        .dns_probe_interval(probe_interval)
-        .channel()
-        .await
-        .expect("failed to init");
-    let mut client = TesterClient::new(load_balanced_channel);
-
-    let servers: Vec<String> = (0..10).into_iter().map(|s| s.to_string()).collect();
-    let mut servers_called = Vec::new();
-
-    // Act
-    for server in &servers {
-        resolver
-            .add_server_with_provided_impl(
-                server.to_string(),
-                TesterImpl {
-                    sender: Arc::clone(&sender),
-                    name: server.to_string(),
-                },
-            )
-            .await;
-
-        // Give time to the DNS probe to run
-        tokio::time::sleep(probe_interval * 3).await;
-
-        let res = client
-            .test(tonic::Request::new(Ping {}))
-            .await
-            .expect("failed to call server");
-        let server = receiver.recv().await.expect("");
-        assert_eq!(
-            server,
-            get_payload_raw(res.into_inner().payload.expect("no payload"))
-        );
-        servers_called.push(server.clone());
-        resolver.remove_server(server).await;
     }
 
     // Assert

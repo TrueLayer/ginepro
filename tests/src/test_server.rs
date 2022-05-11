@@ -1,15 +1,19 @@
 use futures::future::FutureExt;
 use hyper::{Body, Request, Response};
-use std::time::{Duration, Instant};
+use std::{
+    convert::Infallible,
+    time::{Duration, Instant},
+};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::{
     body::BoxBody,
     transport::{
-        server::{Router, Server},
+        server::{Router, Routes, Server},
         NamedService, ServerTlsConfig,
     },
 };
+use tower_layer::Layer;
 use tower_service::Service;
 
 /// Manages construction and destruction of a tonic gRPC server for testing.
@@ -40,7 +44,7 @@ impl TestServer {
         tls: Option<ServerTlsConfig>,
     ) -> Self
     where
-        S: Service<Request<Body>, Response = Response<BoxBody>>
+        S: Service<Request<Body>, Response = Response<BoxBody>, Error = Infallible>
             + NamedService
             + Clone
             + Send
@@ -78,14 +82,13 @@ impl TestServer {
     ///
     /// This function will run the server asynchronously, and
     /// tear it down when `Self` is dropped.
-    pub async fn start_with_router<A, B, T>(router: Router<A, B>, address: T) -> TestServer
+    pub async fn start_with_router<L, T>(router: Router<L>, address: T) -> TestServer
     where
-        A: Service<Request<Body>, Response = Response<BoxBody>> + Clone + Send + 'static,
-        A::Future: Send + 'static,
-        A::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
-        B: Service<Request<Body>, Response = Response<BoxBody>> + Clone + Send + 'static,
-        B::Future: Send + 'static,
-        B::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
+        L: Layer<Routes> + Send + 'static,
+        L::Service: Service<Request<Body>, Response = Response<BoxBody>> + Clone + Send + 'static,
+        <<L as Layer<Routes>>::Service as Service<Request<Body>>>::Future: Send + 'static,
+        <<L as Layer<Routes>>::Service as Service<Request<Body>>>::Error:
+            Into<Box<dyn std::error::Error + Send + Sync>> + Send,
         T: Into<Option<String>>,
     {
         let (shutdown_handle, shutdown) = tokio::sync::oneshot::channel::<()>();

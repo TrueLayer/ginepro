@@ -9,8 +9,6 @@ use openssl::x509::extension::{
     SubjectKeyIdentifier,
 };
 use openssl::x509::{X509Name, X509};
-use rustls::{RootCertStore, ServerCertVerified, ServerCertVerifier, TLSError};
-use tokio_rustls::webpki::DNSNameRef;
 
 /// A SSL certificate for test usage.
 ///
@@ -109,18 +107,4 @@ fn generate_ssl_certificate(private_key: &Rsa<Private>) -> X509 {
     builder.sign(&private_key, MessageDigest::sha256()).unwrap();
 
     builder.build()
-}
-
-pub struct NoVerifier;
-
-impl ServerCertVerifier for NoVerifier {
-    fn verify_server_cert(
-        &self,
-        _roots: &RootCertStore,
-        _presented_certs: &[rustls::Certificate],
-        _dns_name: DNSNameRef,
-        _ocsp_response: &[u8],
-    ) -> Result<ServerCertVerified, TLSError> {
-        Ok(ServerCertVerified::assertion())
-    }
 }

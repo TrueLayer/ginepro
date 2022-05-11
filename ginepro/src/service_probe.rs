@@ -201,7 +201,7 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
         let uri = format!(
             "{}://{}:{}",
             self.scheme,
-            ip_address.ip().to_string(),
+            ip_address.ip(),
             ip_address.port()
         );
 
