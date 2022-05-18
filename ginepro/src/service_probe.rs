@@ -13,11 +13,35 @@ pub enum ProbeError {
     ChangesetSenderClosed(#[source] anyhow::Error),
 }
 
-pub trait EndpointMiddlewareLayer: Send + Sync + 'static {
+/// A middleware to wrap an `Endpoint`. Useful for setting new endpoint configuration.
+pub trait EndpointMiddleware: Send + Sync + 'static {
     fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint>;
 }
 
-impl<F: Fn(Endpoint) -> Option<Endpoint> + Send + Sync + 'static> EndpointMiddlewareLayer for F {
+/// A layer of [`EndpointMiddleware`]. Combines two middlewares into one
+pub struct EndpointMiddlewareLayer<Head, Tail> {
+    pub head: Head,
+    pub tail: Tail,
+}
+impl<Head, Tail> EndpointMiddleware for EndpointMiddlewareLayer<Head, Tail>
+where
+    Head: EndpointMiddleware,
+    Tail: EndpointMiddleware,
+{
+    fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint> {
+        self.head.wrap(self.tail.wrap(endpoint)?)
+    }
+}
+
+/// A no-op [`EndpointMiddleware`].
+pub struct EndpointMiddlewareIdentity;
+impl EndpointMiddleware for EndpointMiddlewareIdentity {
+    fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint> {
+        Some(endpoint)
+    }
+}
+
+impl<F: Fn(Endpoint) -> Option<Endpoint> + Send + Sync + 'static> EndpointMiddleware for F {
     fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint> {
         (self)(endpoint)
     }
@@ -37,9 +61,10 @@ impl<F: Fn(Endpoint) -> Option<Endpoint> + Send + Sync + 'static> EndpointMiddle
 ///       and we have not instructed the removal of that server's address from the
 ///       set of endpoints known to the tonic client.
 ///
-pub struct GrpcServiceProbe<Lookup>
+pub struct GrpcServiceProbe<Lookup, Middleware>
 where
     Lookup: LookupService,
+    Middleware: EndpointMiddleware,
 {
     service_definition: ServiceDefinition,
     scheme: http::uri::Scheme,
@@ -50,7 +75,7 @@ where
     endpoints: HashSet<SocketAddr>,
     endpoint_reporter: Sender<Change<SocketAddr, Endpoint>>,
     tls_config: Option<ClientTlsConfig>,
-    middleware: Vec<Box<dyn EndpointMiddlewareLayer>>,
+    middleware: Middleware,
 }
 
 /// Config parameters to customize the behavior of `GrpcServiceProbe`.
@@ -69,12 +94,13 @@ where
     pub endpoint_timeout: Option<tokio::time::Duration>,
 }
 
-impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
+impl<Lookup: LookupService, Middleware: EndpointMiddleware> GrpcServiceProbe<Lookup, Middleware> {
     /// Construct `GrpcServiceProbe` with a `GrpcServiceProbeConfig` and
     /// the channel `endpoint_reporter` that will send endpoint changes.
     pub fn new_with_reporter(
         config: GrpcServiceProbeConfig<Lookup>,
         endpoint_reporter: Sender<Change<SocketAddr, Endpoint>>,
+        middleware: Middleware,
     ) -> Self {
         Self {
             service_definition: config.service_definition,
@@ -85,7 +111,7 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
             endpoint_reporter,
             scheme: http::uri::Scheme::HTTP,
             tls_config: None,
-            middleware: Vec::new(),
+            middleware,
         }
     }
 
@@ -95,16 +121,6 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
         self.tls_config = Some(tls_config);
         self
     }
-
-    /// Adds all the endpoint middleware layers to this service probe
-    pub fn with_endpoint_middleware(
-        mut self,
-        middleware: Vec<Box<dyn EndpointMiddlewareLayer>>,
-    ) -> Self {
-        self.middleware.extend(middleware);
-        self
-    }
-
     /// Start probing the provided `hostname` for IP address changes.
     /// The function will error if the receiving end of the tonic balance channel
     /// is closed, e.g, the client has been deconstructed.
@@ -244,8 +260,6 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
             endpoint = endpoint.timeout(*timeout);
         }
 
-        self.middleware
-            .iter()
-            .try_fold(endpoint, |endpoint, layer| layer.wrap(endpoint))
+        self.middleware.wrap(endpoint)
     }
 }

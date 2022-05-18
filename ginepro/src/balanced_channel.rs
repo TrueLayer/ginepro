@@ -2,7 +2,10 @@
 //! periodic service discovery.
 
 use crate::{
-    service_probe::{EndpointMiddlewareLayer, GrpcServiceProbe, GrpcServiceProbeConfig},
+    service_probe::{
+        EndpointMiddleware, EndpointMiddlewareIdentity, EndpointMiddlewareLayer, GrpcServiceProbe,
+        GrpcServiceProbeConfig,
+    },
     DnsResolver, LookupService, ServiceDefinition,
 };
 use anyhow::Context as _;
@@ -97,14 +100,14 @@ pub enum ResolutionStrategy {
 }
 
 /// Builder to configure and create a [`LoadBalancedChannel`].
-pub struct LoadBalancedChannelBuilder<T, S> {
+pub struct LoadBalancedChannelBuilder<T, S, M = EndpointMiddlewareIdentity> {
     service_definition: S,
     probe_interval: Option<Duration>,
     resolution_strategy: ResolutionStrategy,
     timeout: Option<Duration>,
     tls_config: Option<ClientTlsConfig>,
     lookup_service: Pin<Box<dyn Future<Output = Result<T, anyhow::Error>>>>,
-    middleware: Vec<Box<dyn EndpointMiddlewareLayer>>,
+    middleware: M,
 }
 
 impl<S> LoadBalancedChannelBuilder<DnsResolver, S>
@@ -126,21 +129,22 @@ where
             tls_config: None,
             lookup_service: Box::pin(DnsResolver::from_system_config()),
             resolution_strategy: ResolutionStrategy::Lazy,
-            middleware: Vec::new(),
+            middleware: EndpointMiddlewareIdentity,
         }
     }
 }
 
-impl<T: LookupService + Send + Sync + 'static + Sized, S> LoadBalancedChannelBuilder<T, S>
+impl<T: LookupService + Send + Sync + 'static + Sized, S, M> LoadBalancedChannelBuilder<T, S, M>
 where
     S: TryInto<ServiceDefinition> + 'static,
     S::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send + Sync,
+    M: EndpointMiddleware,
 {
     /// Set a custom [`LookupService`].
     pub fn lookup_service<T1: LookupService + Send + Sync + 'static>(
         self,
         lookup_service: T1,
-    ) -> LoadBalancedChannelBuilder<T1, S> {
+    ) -> LoadBalancedChannelBuilder<T1, S, M> {
         LoadBalancedChannelBuilder {
             lookup_service: Box::pin(async { Ok(lookup_service) }),
             service_definition: self.service_definition,
@@ -195,9 +199,22 @@ where
     }
 
     /// Adds an endpoint middleware layer that lets you add custom configuration
-    pub fn with_endpoint_layer(mut self, f: impl EndpointMiddlewareLayer) -> Self {
-        self.middleware.push(Box::new(f));
-        self
+    pub fn with_endpoint_layer<Layer: EndpointMiddleware>(
+        self,
+        layer: Layer,
+    ) -> LoadBalancedChannelBuilder<T, S, EndpointMiddlewareLayer<Layer, M>> {
+        LoadBalancedChannelBuilder {
+            lookup_service: self.lookup_service,
+            service_definition: self.service_definition,
+            probe_interval: self.probe_interval,
+            tls_config: self.tls_config,
+            timeout: self.timeout,
+            resolution_strategy: self.resolution_strategy,
+            middleware: EndpointMiddlewareLayer {
+                head: layer,
+                tail: self.middleware,
+            },
+        }
     }
 
     /// Construct a [`LoadBalancedChannel`] from the [`LoadBalancedChannelBuilder`] instance.
@@ -226,13 +243,12 @@ where
             tls_config.domain_name(config.service_definition.hostname())
         });
 
-        let mut service_probe = GrpcServiceProbe::new_with_reporter(config, sender);
+        let mut service_probe =
+            GrpcServiceProbe::new_with_reporter(config, sender, self.middleware);
 
         if let Some(tls_config) = tls_config {
             service_probe = service_probe.with_tls(tls_config);
         }
-
-        service_probe = service_probe.with_endpoint_middleware(self.middleware);
 
         if let ResolutionStrategy::Eager { timeout } = self.resolution_strategy {
             // Make sure we resolve the hostname once before we create the channel.

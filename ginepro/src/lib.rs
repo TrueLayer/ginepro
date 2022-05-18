@@ -129,7 +129,7 @@
 //! async fn main() {
 //!     use ginepro::LoadBalancedChannel;
 //!     use shared_proto::pb::tester_client::TesterClient;
-//!     use tonic::transport::Endpoint
+//!     use tonic::transport::Endpoint;
 //!
 //!     // Create a load balanced channel with the default lookup implementation and a custom User-Agent.
 //!     let load_balanced_channel = LoadBalancedChannel::builder(("my.hostname", 5000))
@@ -158,4 +158,4 @@ pub use balanced_channel::*;
 pub use dns_resolver::*;
 pub use lookup_service::*;
 pub use service_definition::*;
-pub use service_probe::EndpointMiddlewareLayer;
+pub use service_probe::{EndpointMiddleware, EndpointMiddlewareIdentity, EndpointMiddlewareLayer};
