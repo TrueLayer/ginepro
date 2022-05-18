@@ -13,6 +13,16 @@ pub enum ProbeError {
     ChangesetSenderClosed(#[source] anyhow::Error),
 }
 
+pub trait EndpointMiddlewareLayer: Send + Sync + 'static {
+    fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint>;
+}
+
+impl<F: Fn(Endpoint) -> Option<Endpoint> + Send + Sync + 'static> EndpointMiddlewareLayer for F {
+    fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint> {
+        (self)(endpoint)
+    }
+}
+
 /// [`GrpcServiceProbe`] looks up IP addresses associated with the configured `host_name`
 /// once every `probe_interval`.
 /// If a new IP address is discovered or an old one disappears it notifies the [`tonic`] gRPC client.
@@ -40,6 +50,7 @@ where
     endpoints: HashSet<SocketAddr>,
     endpoint_reporter: Sender<Change<SocketAddr, Endpoint>>,
     tls_config: Option<ClientTlsConfig>,
+    middleware: Vec<Box<dyn EndpointMiddlewareLayer>>,
 }
 
 /// Config parameters to customize the behavior of `GrpcServiceProbe`.
@@ -64,7 +75,7 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
     pub fn new_with_reporter(
         config: GrpcServiceProbeConfig<Lookup>,
         endpoint_reporter: Sender<Change<SocketAddr, Endpoint>>,
-    ) -> GrpcServiceProbe<Lookup> {
+    ) -> Self {
         Self {
             service_definition: config.service_definition,
             dns_lookup: config.dns_lookup,
@@ -74,16 +85,24 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
             endpoint_reporter,
             scheme: http::uri::Scheme::HTTP,
             tls_config: None,
+            middleware: Vec::new(),
         }
     }
 
     /// Enable tls for all endpoints.
-    pub fn with_tls(self, tls_config: ClientTlsConfig) -> GrpcServiceProbe<Lookup> {
-        Self {
-            tls_config: Some(tls_config),
-            scheme: http::uri::Scheme::HTTPS,
-            ..self
-        }
+    pub fn with_tls(mut self, tls_config: ClientTlsConfig) -> Self {
+        self.scheme = http::uri::Scheme::HTTPS;
+        self.tls_config = Some(tls_config);
+        self
+    }
+
+    /// Adds all the endpoint middleware layers to this service probe
+    pub fn with_endpoint_middleware(
+        mut self,
+        middleware: Vec<Box<dyn EndpointMiddlewareLayer>>,
+    ) -> Self {
+        self.middleware.extend(middleware);
+        self
     }
 
     /// Start probing the provided `hostname` for IP address changes.
@@ -225,6 +244,8 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
             endpoint = endpoint.timeout(*timeout);
         }
 
-        Some(endpoint)
+        self.middleware
+            .iter()
+            .try_fold(endpoint, |endpoint, layer| layer.wrap(endpoint))
     }
 }

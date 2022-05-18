@@ -1,5 +1,6 @@
 use crate::lookup::TestDnsResolver;
 use crate::lookup::TesterImpl;
+use crate::lookup::UserAgentTesterImpl;
 use ginepro::{LoadBalancedChannel, LoadBalancedChannelBuilder, LookupService, ServiceDefinition};
 use shared_proto::pb::pong::Payload;
 use shared_proto::pb::tester_client::TesterClient;
@@ -8,6 +9,7 @@ use std::sync::Arc;
 use std::{collections::HashSet, net::SocketAddr};
 use std::{net::AddrParseError, time::Duration};
 use tokio::sync::Mutex;
+use tonic::transport::Endpoint;
 
 fn get_payload_raw(payload: Payload) -> String {
     match payload {
@@ -248,15 +250,58 @@ async fn builder_and_resolve_shall_succeed_when_ips_are_returned() {
         }
     }
 
+    LoadBalancedChannel::builder(ServiceDefinition::from_parts("test.com", 5000).unwrap())
+        .timeout(tokio::time::Duration::from_millis(500))
+        .resolution_strategy(ginepro::ResolutionStrategy::Eager {
+            timeout: Duration::from_secs(20),
+        })
+        .channel()
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn builder_with_middleware_layers() {
+    let uris = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let uris2 = Arc::clone(&uris);
+
+    let mut resolver = TestDnsResolver::default();
+
+    let load_balanced_channel = LoadBalancedChannel::builder(("www.test.com", 5000))
+        .lookup_service(resolver.clone())
+        .timeout(tokio::time::Duration::from_millis(500))
+        .resolution_strategy(ginepro::ResolutionStrategy::Eager {
+            timeout: Duration::from_secs(20),
+        })
+        .with_endpoint_layer(move |endpoint: Endpoint| Some(endpoint.concurrency_limit(1)))
+        .with_endpoint_layer(move |endpoint: Endpoint| {
+            // record the uri so we can assert that all the layers are run test it
+            uris2.lock().unwrap().push(endpoint.uri().clone());
+            Some(endpoint)
+        })
+        .with_endpoint_layer(move |endpoint: Endpoint| {
+            endpoint.user_agent("my ginepro client").ok()
+        })
+        .channel()
+        .await
+        .unwrap();
+    let mut client = TesterClient::new(load_balanced_channel);
+
+    assert!(uris.lock().unwrap().is_empty()); // no URIs yet, no layers called
+
+    resolver
+        .add_server_with_provided_impl("server1".to_string(), UserAgentTesterImpl)
+        .await;
+
+    let res = client
+        .test(tonic::Request::new(Ping {}))
+        .await
+        .expect("failed to call server");
+
+    assert_eq!(uris.lock().unwrap().len(), 1); // URIs registered, layers called
+
     assert!(
-        LoadBalancedChannel::builder(ServiceDefinition::from_parts("test.com", 5000).unwrap(),)
-            .lookup_service(SucceedResolve)
-            .timeout(tokio::time::Duration::from_millis(500))
-            .resolution_strategy(ginepro::ResolutionStrategy::Eager {
-                timeout: Duration::from_secs(20),
-            })
-            .channel()
-            .await
-            .is_ok()
-    );
+        get_payload_raw(res.into_inner().payload.expect("no payload"))
+            .starts_with("my ginepro client")
+    )
 }

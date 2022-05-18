@@ -35,6 +35,28 @@ impl Tester for TesterImpl {
 }
 
 #[derive(Clone)]
+pub struct UserAgentTesterImpl;
+
+#[async_trait::async_trait]
+impl Tester for UserAgentTesterImpl {
+    async fn test(&self, req: tonic::Request<Ping>) -> Result<tonic::Response<Pong>, Status> {
+        let ua = req
+            .metadata()
+            .get("user-agent")
+            .ok_or_else(|| Status::new(tonic::Code::PermissionDenied, "no user agent supplied"))?;
+
+        let ua = ua
+            .to_str()
+            .map_err(|_e| Status::new(tonic::Code::InvalidArgument, "non utf8 user agent supplied"))?
+            .to_owned();
+
+        Ok(tonic::Response::new(Pong {
+            payload: Some(Payload::Raw(ua)),
+        }))
+    }
+}
+
+#[derive(Clone)]
 pub struct TestDnsResolver {
     pub ips: Arc<RwLock<HashMap<String, String>>>,
     pub servers: Arc<RwLock<HashMap<String, TestServer>>>,
