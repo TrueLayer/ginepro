@@ -121,6 +121,27 @@
 //! }
 //! ```
 //!
+//! If needed, you can use the [`with_endpoint_layer`](LoadBalancedChannelBuilder::with_endpoint_layer)
+//! method to add more configuration to the channel endpoints
+//!
+//! ```rust
+//! #[tokio::main]
+//! async fn main() {
+//!     use ginepro::LoadBalancedChannel;
+//!     use shared_proto::pb::tester_client::TesterClient;
+//!     use tonic::transport::Endpoint
+//!
+//!     // Create a load balanced channel with the default lookup implementation and a custom User-Agent.
+//!     let load_balanced_channel = LoadBalancedChannel::builder(("my.hostname", 5000))
+//!         .with_endpoint_layer(|endpoint: Endpoint| endpoint.user_agent("my ginepro client").ok())
+//!         .channel()
+//!         .await
+//!         .expect("failed to construct LoadBalancedChannel");
+//!
+//!     let tester_client = TesterClient::new(load_balanced_channel);
+//! }
+//! ```
+//!
 //! # Internals
 //! The tonic [`Channel`](tonic::transport::Channel) exposes the function
 //! [`balance_channel`](tonic::transport::Channel::balance_channel) which returnes a bounded channel through which

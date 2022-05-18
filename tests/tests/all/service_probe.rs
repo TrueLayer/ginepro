@@ -266,22 +266,18 @@ async fn builder_with_middleware_layers() {
     let uris2 = Arc::clone(&uris);
 
     let mut resolver = TestDnsResolver::default();
+    let probe_interval = tokio::time::Duration::from_millis(3);
 
     let load_balanced_channel = LoadBalancedChannel::builder(("www.test.com", 5000))
         .lookup_service(resolver.clone())
-        .timeout(tokio::time::Duration::from_millis(500))
-        .resolution_strategy(ginepro::ResolutionStrategy::Eager {
-            timeout: Duration::from_secs(20),
-        })
-        .with_endpoint_layer(move |endpoint: Endpoint| Some(endpoint.concurrency_limit(1)))
+        .dns_probe_interval(probe_interval)
+        .with_endpoint_layer(|endpoint: Endpoint| Some(endpoint.concurrency_limit(1)))
         .with_endpoint_layer(move |endpoint: Endpoint| {
-            // record the uri so we can assert that all the layers are run test it
+            // record the uri so we can assert that all the layers are run
             uris2.lock().unwrap().push(endpoint.uri().clone());
             Some(endpoint)
         })
-        .with_endpoint_layer(move |endpoint: Endpoint| {
-            endpoint.user_agent("my ginepro client").ok()
-        })
+        .with_endpoint_layer(|endpoint: Endpoint| endpoint.user_agent("my ginepro client").ok())
         .channel()
         .await
         .unwrap();
@@ -289,19 +285,40 @@ async fn builder_with_middleware_layers() {
 
     assert!(uris.lock().unwrap().is_empty()); // no URIs yet, no layers called
 
-    resolver
-        .add_server_with_provided_impl("server1".to_string(), UserAgentTesterImpl)
-        .await;
+    // add a new server and check that the layers are run
+    {
+        resolver
+            .add_server_with_provided_impl("server2".to_string(), UserAgentTesterImpl)
+            .await;
 
-    let res = client
-        .test(tonic::Request::new(Ping {}))
-        .await
-        .expect("failed to call server");
+        // Give time to the DNS probe to run
+        tokio::time::sleep(probe_interval * 3).await;
 
-    assert_eq!(uris.lock().unwrap().len(), 1); // URIs registered, layers called
+        assert_eq!(uris.lock().unwrap().len(), 1); // new URI registered, layers called
+    }
 
-    assert!(
-        get_payload_raw(res.into_inner().payload.expect("no payload"))
-            .starts_with("my ginepro client")
-    )
+    // check that our endpoint actually has the user agent we configured
+    {
+        let res = client
+            .test(tonic::Request::new(Ping {}))
+            .await
+            .expect("failed to call server");
+
+        assert!(
+            get_payload_raw(res.into_inner().payload.expect("no payload"))
+                .starts_with("my ginepro client")
+        );
+    }
+
+    // add a new server and check that the layers are run again
+    {
+        resolver
+            .add_server_with_provided_impl("server2".to_string(), UserAgentTesterImpl)
+            .await;
+
+        // Give time to the DNS probe to run
+        tokio::time::sleep(probe_interval * 3).await;
+
+        assert_eq!(uris.lock().unwrap().len(), 2); // new URI registered, layers called
+    }
 }

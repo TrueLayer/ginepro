@@ -47,7 +47,9 @@ impl Tester for UserAgentTesterImpl {
 
         let ua = ua
             .to_str()
-            .map_err(|_e| Status::new(tonic::Code::InvalidArgument, "non utf8 user agent supplied"))?
+            .map_err(|_e| {
+                Status::new(tonic::Code::InvalidArgument, "non utf8 user agent supplied")
+            })?
             .to_owned();
 
         Ok(tonic::Response::new(Pong {
