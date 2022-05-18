@@ -13,6 +13,33 @@ pub enum ProbeError {
     ChangesetSenderClosed(#[source] anyhow::Error),
 }
 
+/// A middleware to wrap an `Endpoint`. Useful for setting new endpoint configuration.
+pub trait EndpointMiddleware: Send + Sync + 'static {
+    fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint>;
+}
+
+impl<Head, Tail> EndpointMiddleware for (Head, Tail)
+where
+    Head: EndpointMiddleware,
+    Tail: EndpointMiddleware,
+{
+    fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint> {
+        self.0.wrap(self.1.wrap(endpoint)?)
+    }
+}
+
+impl EndpointMiddleware for () {
+    fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint> {
+        Some(endpoint)
+    }
+}
+
+impl<F: Fn(Endpoint) -> Option<Endpoint> + Send + Sync + 'static> EndpointMiddleware for F {
+    fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint> {
+        (self)(endpoint)
+    }
+}
+
 /// [`GrpcServiceProbe`] looks up IP addresses associated with the configured `host_name`
 /// once every `probe_interval`.
 /// If a new IP address is discovered or an old one disappears it notifies the [`tonic`] gRPC client.
@@ -27,9 +54,10 @@ pub enum ProbeError {
 ///       and we have not instructed the removal of that server's address from the
 ///       set of endpoints known to the tonic client.
 ///
-pub struct GrpcServiceProbe<Lookup>
+pub struct GrpcServiceProbe<Lookup, Middleware>
 where
     Lookup: LookupService,
+    Middleware: EndpointMiddleware,
 {
     service_definition: ServiceDefinition,
     scheme: http::uri::Scheme,
@@ -40,6 +68,7 @@ where
     endpoints: HashSet<SocketAddr>,
     endpoint_reporter: Sender<Change<SocketAddr, Endpoint>>,
     tls_config: Option<ClientTlsConfig>,
+    middleware: Middleware,
 }
 
 /// Config parameters to customize the behavior of `GrpcServiceProbe`.
@@ -58,13 +87,14 @@ where
     pub endpoint_timeout: Option<tokio::time::Duration>,
 }
 
-impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
+impl<Lookup: LookupService, Middleware: EndpointMiddleware> GrpcServiceProbe<Lookup, Middleware> {
     /// Construct `GrpcServiceProbe` with a `GrpcServiceProbeConfig` and
     /// the channel `endpoint_reporter` that will send endpoint changes.
     pub fn new_with_reporter(
         config: GrpcServiceProbeConfig<Lookup>,
         endpoint_reporter: Sender<Change<SocketAddr, Endpoint>>,
-    ) -> GrpcServiceProbe<Lookup> {
+        middleware: Middleware,
+    ) -> Self {
         Self {
             service_definition: config.service_definition,
             dns_lookup: config.dns_lookup,
@@ -74,18 +104,16 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
             endpoint_reporter,
             scheme: http::uri::Scheme::HTTP,
             tls_config: None,
+            middleware,
         }
     }
 
     /// Enable tls for all endpoints.
-    pub fn with_tls(self, tls_config: ClientTlsConfig) -> GrpcServiceProbe<Lookup> {
-        Self {
-            tls_config: Some(tls_config),
-            scheme: http::uri::Scheme::HTTPS,
-            ..self
-        }
+    pub fn with_tls(mut self, tls_config: ClientTlsConfig) -> Self {
+        self.scheme = http::uri::Scheme::HTTPS;
+        self.tls_config = Some(tls_config);
+        self
     }
-
     /// Start probing the provided `hostname` for IP address changes.
     /// The function will error if the receiving end of the tonic balance channel
     /// is closed, e.g, the client has been deconstructed.
@@ -225,6 +253,6 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
             endpoint = endpoint.timeout(*timeout);
         }
 
-        Some(endpoint)
+        self.middleware.wrap(endpoint)
     }
 }

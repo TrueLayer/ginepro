@@ -2,7 +2,7 @@
 //! periodic service discovery.
 
 use crate::{
-    service_probe::{GrpcServiceProbe, GrpcServiceProbeConfig},
+    service_probe::{EndpointMiddleware, GrpcServiceProbe, GrpcServiceProbeConfig},
     DnsResolver, LookupService, ServiceDefinition,
 };
 use anyhow::Context as _;
@@ -97,13 +97,14 @@ pub enum ResolutionStrategy {
 }
 
 /// Builder to configure and create a [`LoadBalancedChannel`].
-pub struct LoadBalancedChannelBuilder<T, S> {
+pub struct LoadBalancedChannelBuilder<T, S, M = ()> {
     service_definition: S,
     probe_interval: Option<Duration>,
     resolution_strategy: ResolutionStrategy,
     timeout: Option<Duration>,
     tls_config: Option<ClientTlsConfig>,
     lookup_service: Pin<Box<dyn Future<Output = Result<T, anyhow::Error>>>>,
+    middleware: M,
 }
 
 impl<S> LoadBalancedChannelBuilder<DnsResolver, S>
@@ -117,7 +118,7 @@ where
     /// All the service endpoints of a [`ServiceDefinition`] will be
     /// constructed by resolving all ips from [`ServiceDefinition::hostname`], and
     /// using the portnumber [`ServiceDefinition::port`].
-    pub fn new_with_service(service_definition: S) -> LoadBalancedChannelBuilder<DnsResolver, S> {
+    pub fn new_with_service(service_definition: S) -> Self {
         Self {
             service_definition,
             probe_interval: None,
@@ -125,14 +126,22 @@ where
             tls_config: None,
             lookup_service: Box::pin(DnsResolver::from_system_config()),
             resolution_strategy: ResolutionStrategy::Lazy,
+            middleware: (),
         }
     }
+}
 
+impl<T: LookupService + Send + Sync + 'static + Sized, S, M> LoadBalancedChannelBuilder<T, S, M>
+where
+    S: TryInto<ServiceDefinition> + 'static,
+    S::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send + Sync,
+    M: EndpointMiddleware,
+{
     /// Set a custom [`LookupService`].
-    pub fn lookup_service<T: LookupService + Send + Sync + 'static>(
+    pub fn lookup_service<Lookup: LookupService + Send + Sync + 'static>(
         self,
-        lookup_service: T,
-    ) -> LoadBalancedChannelBuilder<T, S> {
+        lookup_service: Lookup,
+    ) -> LoadBalancedChannelBuilder<Lookup, S, M> {
         LoadBalancedChannelBuilder {
             lookup_service: Box::pin(async { Ok(lookup_service) }),
             service_definition: self.service_definition,
@@ -140,18 +149,13 @@ where
             tls_config: self.tls_config,
             timeout: self.timeout,
             resolution_strategy: self.resolution_strategy,
+            middleware: self.middleware,
         }
     }
-}
 
-impl<T: LookupService + Send + Sync + 'static + Sized, S> LoadBalancedChannelBuilder<T, S>
-where
-    S: TryInto<ServiceDefinition> + 'static,
-    S::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send + Sync,
-{
     /// Set the how often, the client should probe for changes to  gRPC server endpoints.
     /// Default interval in seconds is 10.
-    pub fn dns_probe_interval(self, interval: Duration) -> LoadBalancedChannelBuilder<T, S> {
+    pub fn dns_probe_interval(self, interval: Duration) -> Self {
         Self {
             probe_interval: Some(interval),
             ..self
@@ -159,7 +163,7 @@ where
     }
 
     /// Set a timeout that will be applied to every new `Endpoint`.
-    pub fn timeout(self, timeout: Duration) -> LoadBalancedChannelBuilder<T, S> {
+    pub fn timeout(self, timeout: Duration) -> Self {
         Self {
             timeout: Some(timeout),
             ..self
@@ -175,10 +179,7 @@ where
     /// Instead, if [`ResolutionStrategy::Eager`] is set the domain name will be attempted resolved
     /// once before the [`LoadBalancedChannel`] is created, which ensures that the channel
     /// will have a non-empty of IPs on startup. If it fails the channel creation will also fail.
-    pub fn resolution_strategy(
-        self,
-        resolution_strategy: ResolutionStrategy,
-    ) -> LoadBalancedChannelBuilder<T, S> {
+    pub fn resolution_strategy(self, resolution_strategy: ResolutionStrategy) -> Self {
         Self {
             resolution_strategy,
             ..self
@@ -187,10 +188,26 @@ where
 
     /// Configure the channel to use tls.
     /// A `tls_config` MUST be specified to use the `HTTPS` scheme.
-    pub fn with_tls(self, tls_config: ClientTlsConfig) -> LoadBalancedChannelBuilder<T, S> {
+    pub fn with_tls(self, tls_config: ClientTlsConfig) -> Self {
         Self {
             tls_config: Some(tls_config),
             ..self
+        }
+    }
+
+    /// Adds an endpoint middleware layer that lets you add custom configuration
+    pub fn with_endpoint_layer<Layer: EndpointMiddleware>(
+        self,
+        layer: Layer,
+    ) -> LoadBalancedChannelBuilder<T, S, (Layer, M)> {
+        LoadBalancedChannelBuilder {
+            lookup_service: self.lookup_service,
+            service_definition: self.service_definition,
+            probe_interval: self.probe_interval,
+            tls_config: self.tls_config,
+            timeout: self.timeout,
+            resolution_strategy: self.resolution_strategy,
+            middleware: (layer, self.middleware),
         }
     }
 
@@ -213,16 +230,15 @@ where
                 .unwrap_or_else(|| Duration::from_secs(10)),
         };
 
-        let tls_config = self.tls_config.map(|mut tls_config| {
+        let tls_config = self.tls_config.map(|tls_config| {
             // Since we resolve the hostname to an IP, which is not a valid DNS name,
             // we have to set the hostname explicitly on the tls config,
             // otherwise the IP will be set as the domain name and tls handshake will fail.
-            tls_config = tls_config.domain_name(config.service_definition.hostname());
-
-            tls_config
+            tls_config.domain_name(config.service_definition.hostname())
         });
 
-        let mut service_probe = GrpcServiceProbe::new_with_reporter(config, sender);
+        let mut service_probe =
+            GrpcServiceProbe::new_with_reporter(config, sender, self.middleware);
 
         if let Some(tls_config) = tls_config {
             service_probe = service_probe.with_tls(tls_config);
