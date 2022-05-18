@@ -158,4 +158,4 @@ pub use balanced_channel::*;
 pub use dns_resolver::*;
 pub use lookup_service::*;
 pub use service_definition::*;
-pub use service_probe::{EndpointMiddleware, EndpointMiddlewareIdentity, EndpointMiddlewareLayer};
+pub use service_probe::EndpointMiddleware;

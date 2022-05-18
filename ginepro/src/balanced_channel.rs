@@ -2,10 +2,7 @@
 //! periodic service discovery.
 
 use crate::{
-    service_probe::{
-        EndpointMiddleware, EndpointMiddlewareIdentity, EndpointMiddlewareLayer, GrpcServiceProbe,
-        GrpcServiceProbeConfig,
-    },
+    service_probe::{EndpointMiddleware, GrpcServiceProbe, GrpcServiceProbeConfig},
     DnsResolver, LookupService, ServiceDefinition,
 };
 use anyhow::Context as _;
@@ -100,7 +97,7 @@ pub enum ResolutionStrategy {
 }
 
 /// Builder to configure and create a [`LoadBalancedChannel`].
-pub struct LoadBalancedChannelBuilder<T, S, M = EndpointMiddlewareIdentity> {
+pub struct LoadBalancedChannelBuilder<T, S, M = ()> {
     service_definition: S,
     probe_interval: Option<Duration>,
     resolution_strategy: ResolutionStrategy,
@@ -129,7 +126,7 @@ where
             tls_config: None,
             lookup_service: Box::pin(DnsResolver::from_system_config()),
             resolution_strategy: ResolutionStrategy::Lazy,
-            middleware: EndpointMiddlewareIdentity,
+            middleware: (),
         }
     }
 }
@@ -141,10 +138,10 @@ where
     M: EndpointMiddleware,
 {
     /// Set a custom [`LookupService`].
-    pub fn lookup_service<T1: LookupService + Send + Sync + 'static>(
+    pub fn lookup_service<Lookup: LookupService + Send + Sync + 'static>(
         self,
-        lookup_service: T1,
-    ) -> LoadBalancedChannelBuilder<T1, S, M> {
+        lookup_service: Lookup,
+    ) -> LoadBalancedChannelBuilder<Lookup, S, M> {
         LoadBalancedChannelBuilder {
             lookup_service: Box::pin(async { Ok(lookup_service) }),
             service_definition: self.service_definition,
@@ -202,7 +199,7 @@ where
     pub fn with_endpoint_layer<Layer: EndpointMiddleware>(
         self,
         layer: Layer,
-    ) -> LoadBalancedChannelBuilder<T, S, EndpointMiddlewareLayer<Layer, M>> {
+    ) -> LoadBalancedChannelBuilder<T, S, (Layer, M)> {
         LoadBalancedChannelBuilder {
             lookup_service: self.lookup_service,
             service_definition: self.service_definition,
@@ -210,10 +207,7 @@ where
             tls_config: self.tls_config,
             timeout: self.timeout,
             resolution_strategy: self.resolution_strategy,
-            middleware: EndpointMiddlewareLayer {
-                head: layer,
-                tail: self.middleware,
-            },
+            middleware: (layer, self.middleware),
         }
     }
 

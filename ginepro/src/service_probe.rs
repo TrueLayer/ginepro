@@ -18,24 +18,17 @@ pub trait EndpointMiddleware: Send + Sync + 'static {
     fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint>;
 }
 
-/// A layer of [`EndpointMiddleware`]. Combines two middlewares into one
-pub struct EndpointMiddlewareLayer<Head, Tail> {
-    pub head: Head,
-    pub tail: Tail,
-}
-impl<Head, Tail> EndpointMiddleware for EndpointMiddlewareLayer<Head, Tail>
+impl<Head, Tail> EndpointMiddleware for (Head, Tail)
 where
     Head: EndpointMiddleware,
     Tail: EndpointMiddleware,
 {
     fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint> {
-        self.head.wrap(self.tail.wrap(endpoint)?)
+        self.0.wrap(self.1.wrap(endpoint)?)
     }
 }
 
-/// A no-op [`EndpointMiddleware`].
-pub struct EndpointMiddlewareIdentity;
-impl EndpointMiddleware for EndpointMiddlewareIdentity {
+impl EndpointMiddleware for () {
     fn wrap(&self, endpoint: Endpoint) -> Option<Endpoint> {
         Some(endpoint)
     }
