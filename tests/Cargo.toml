@@ -5,33 +5,21 @@ authors = ["Helge Hoff <helge.hoff@truelayer.com>"]
 edition = "2021"
 publish = false
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-# Local
 ginepro = { path = "../ginepro" }
 
 tonic = { version = "0.8", features = ["tls"] }
 openssl = "0.10"
 tracing = { version = "0.1", features = ["log", "attributes"] }
-tracing-futures = "0.2"
-prost = "0.11"
 futures = "0.3.12"
 tokio-stream = { version = "0.1.2", features = ["net"] }
 tokio = { version = "1", features = ["full"] }
 hyper = "0.14"
 tower-service = "0.3"
 tower-layer = "0.3"
-rustls = { version =  "0.20", features = ["dangerous_configuration"] }
-tower-http = { version = "0.3", features = ["add-extension"] }
 
 [dev-dependencies]
-lazy_static = "1.4"
-reqwest = "0.11"
-tower = { version = "0.4", default-features = false, features = ["discover"] }
 anyhow = "1"
-trust-dns-resolver = "0.21"
 async-trait = "0.1"
-http = "0.2"
 tonic-health = "0.7"
 shared-proto = { path = "../shared_proto"}

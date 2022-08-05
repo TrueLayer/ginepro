@@ -5,8 +5,6 @@ authors = ["Helge Hoff <helge.hoff@truelayer.com>"]
 edition = "2021"
 publish = false
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 tonic = "0.8"
 prost = "0.11"
