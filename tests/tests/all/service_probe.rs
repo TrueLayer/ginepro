@@ -166,6 +166,7 @@ async fn connection_timeout_is_not_fatal() {
     let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
         .lookup_service(resolver.clone())
         .timeout(tokio::time::Duration::from_millis(500))
+        .connect_timeout(tokio::time::Duration::from_millis(500))
         .dns_probe_interval(probe_interval)
         .channel()
         .await
@@ -175,10 +176,13 @@ async fn connection_timeout_is_not_fatal() {
     resolver
         .add_ip_without_server("ghost_server".into(), "127.0.0.124:5000".into())
         .await;
-    client
-        .test(tonic::Request::new(Ping {}))
+
+    let req = client.test(tonic::Request::new(Ping {}));
+    let res = tokio::time::timeout(Duration::from_secs(1), req)
         .await
-        .expect_err("The call without a backing server should fail");
+        .expect("took longer than connect_timeout to fail");
+    res.expect_err("The call without a backing server should fail");
+
     resolver
         .remove_ip_and_not_server("ghost_server".into())
         .await;

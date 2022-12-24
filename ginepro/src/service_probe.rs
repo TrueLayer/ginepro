@@ -36,6 +36,7 @@ where
     dns_lookup: Lookup,
     probe_interval: tokio::time::Duration,
     endpoint_timeout: Option<tokio::time::Duration>,
+    endpoint_connect_timeout: Option<tokio::time::Duration>,
     /// The set of last reported endpoints by `dns_lookup`.
     endpoints: HashSet<SocketAddr>,
     endpoint_reporter: Sender<Change<SocketAddr, Endpoint>>,
@@ -56,6 +57,8 @@ where
     pub probe_interval: tokio::time::Duration,
     /// A timeout that will be applied to every endpoint.
     pub endpoint_timeout: Option<tokio::time::Duration>,
+    /// A connection timeout that will be applied to every endpoint.
+    pub endpoint_connect_timeout: Option<tokio::time::Duration>,
 }
 
 impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
@@ -70,6 +73,7 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
             dns_lookup: config.dns_lookup,
             probe_interval: config.probe_interval,
             endpoint_timeout: config.endpoint_timeout,
+            endpoint_connect_timeout: config.endpoint_connect_timeout,
             endpoints: HashSet::new(),
             endpoint_reporter,
             scheme: http::uri::Scheme::HTTP,
@@ -223,6 +227,9 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
 
         if let Some(ref timeout) = self.endpoint_timeout {
             endpoint = endpoint.timeout(*timeout);
+        }
+        if let Some(ref connect_timeout) = self.endpoint_connect_timeout {
+            endpoint = endpoint.connect_timeout(*connect_timeout)
         }
 
         Some(endpoint)
