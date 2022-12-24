@@ -82,7 +82,7 @@ async fn load_balance_happy_path_scenario_calls_all_endpoints() {
     //  2. Do 20 gRPC calls.
     //  3. Assert that all 3 servers have been called.
     // What we want to test:
-    //  A common load balaning scenario in which you have more calls
+    //  A common load balancing scenario in which you have more calls
     //  than servers, and you want all servers to be called.
 
     let num_calls = 20;

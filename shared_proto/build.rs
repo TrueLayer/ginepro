@@ -1,4 +1,4 @@
-//! Compile a grpc service defintion to be exposed and used
+//! Compile a grpc service definition to be exposed and used
 //! for testing in this crate and others that want to test
 //! tonic functionality.
 

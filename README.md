@@ -9,7 +9,7 @@
 
 # Overview
 
-`ginepro` enriches [tonic](https://github.com/hyperium/tonic) by periodcally updating the list of
+`ginepro` enriches [tonic](https://github.com/hyperium/tonic) by periodically updating the list of
 servers that are available through a `ServiceDiscovery` interface that currently is implemented for DNS.
 
 ## How to install
