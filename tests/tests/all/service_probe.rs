@@ -147,14 +147,77 @@ async fn load_balance_happy_path_scenario_calls_all_endpoints() {
 }
 
 #[tokio::test]
-async fn connection_timeout_is_not_fatal() {
+async fn os_connection_timeout_is_not_fatal() {
     // Scenario:
     // The DNS probe returns an IP that we fail to connect to.
     // We want to ensure that our client keeps working as expected
     // as long as another good server comes up.
     // Steps:
     //   * Discover an IP without a backing server (`ghost_server`)
-    //   * See the client call fail
+    //   * See the client call fail with an OS timeout
+    //   * Discover an IP with a backing server (`good_server`)
+    //   * Wait for discovery update to happen in the probe task
+    //   * See the client call succeed
+    let (sender, mut receiver) = tokio::sync::mpsc::channel(10);
+    let sender = Arc::new(Mutex::new(sender));
+    let mut resolver = TestDnsResolver::default();
+    let probe_interval = tokio::time::Duration::from_millis(3);
+
+    let load_balanced_channel = LoadBalancedChannelBuilder::new_with_service(("test", 5000))
+        .lookup_service(resolver.clone())
+        .timeout(tokio::time::Duration::from_millis(500))
+        .dns_probe_interval(probe_interval)
+        .channel()
+        .await
+        .expect("failed to init");
+    let mut client = TesterClient::new(load_balanced_channel);
+
+    resolver
+        .add_ip_without_server("ghost_server".into(), "127.0.0.124:5000".into())
+        .await;
+    client
+        .test(tonic::Request::new(Ping {}))
+        .await
+        .expect_err("The call without a backing server should fail");
+
+    resolver
+        .remove_ip_and_not_server("ghost_server".into())
+        .await;
+
+    resolver
+        .add_server_with_provided_impl(
+            "good_server".to_string(),
+            TesterImpl {
+                sender: Arc::clone(&sender),
+                name: "good_server".to_string(),
+            },
+        )
+        .await;
+
+    // Give time to the DNS probe to add the new good server
+    tokio::time::sleep(probe_interval * 5).await;
+
+    let res = client
+        .test(tonic::Request::new(Ping {}))
+        .await
+        .expect("failed to call server");
+
+    let server = receiver.recv().await.expect("");
+    assert_eq!(
+        server,
+        get_payload_raw(res.into_inner().payload.expect("no payload"))
+    );
+}
+
+#[tokio::test]
+async fn connection_timeout_is_applied() {
+    // Scenario:
+    // The DNS probe returns an IP that we fail to connect to. We want to ensure
+    // that 1. our client keeps working as expected as long as another good
+    // server comes up and 2. our connection timeout is applied correctly.
+    // Steps:
+    //   * Discover an IP without a backing server (`ghost_server`)
+    //   * See the client call fail quickly from our own timeout
     //   * Discover an IP with a backing server (`good_server`)
     //   * Wait for discovery update to happen in the probe task
     //   * See the client call succeed
@@ -177,6 +240,7 @@ async fn connection_timeout_is_not_fatal() {
         .add_ip_without_server("ghost_server".into(), "127.0.0.124:5000".into())
         .await;
 
+    // Check our timeout is applied when we fail to connect
     let req = client.test(tonic::Request::new(Ping {}));
     let res = tokio::time::timeout(Duration::from_secs(1), req)
         .await
