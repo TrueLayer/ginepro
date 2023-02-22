@@ -103,7 +103,7 @@ pub struct LoadBalancedChannelBuilder<T, S> {
     resolution_strategy: ResolutionStrategy,
     timeout: Option<Duration>,
     tls_config: Option<ClientTlsConfig>,
-    lookup_service: Pin<Box<dyn Future<Output = Result<T, anyhow::Error>>>>,
+    lookup_service: Pin<Box<dyn Future<Output = Result<T, anyhow::Error>> + Send>>,
 }
 
 impl<S> LoadBalancedChannelBuilder<DnsResolver, S>
