@@ -253,3 +253,9 @@ where
         Ok(LoadBalancedChannel(channel))
     }
 }
+
+const _: () = {
+    const fn assert_is_send<T: Send>() {}
+    assert_is_send::<LoadBalancedChannelBuilder<DnsResolver, ServiceDefinition>>();
+    assert_is_send::<LoadBalancedChannel>();
+};
