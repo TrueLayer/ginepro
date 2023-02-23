@@ -9,8 +9,6 @@ use anyhow::Context as _;
 use http::Request;
 use std::{
     convert::TryInto,
-    future::Future,
-    pin::Pin,
     task::{Context, Poll},
 };
 use tokio::time::Duration;
@@ -103,7 +101,7 @@ pub struct LoadBalancedChannelBuilder<T, S> {
     resolution_strategy: ResolutionStrategy,
     timeout: Option<Duration>,
     tls_config: Option<ClientTlsConfig>,
-    lookup_service: Pin<Box<dyn Future<Output = Result<T, anyhow::Error>>>>,
+    lookup_service: Option<T>,
 }
 
 impl<S> LoadBalancedChannelBuilder<DnsResolver, S>
@@ -123,7 +121,7 @@ where
             probe_interval: None,
             timeout: None,
             tls_config: None,
-            lookup_service: Box::pin(DnsResolver::from_system_config()),
+            lookup_service: None,
             resolution_strategy: ResolutionStrategy::Lazy,
         }
     }
@@ -134,7 +132,7 @@ where
         lookup_service: T,
     ) -> LoadBalancedChannelBuilder<T, S> {
         LoadBalancedChannelBuilder {
-            lookup_service: Box::pin(async { Ok(lookup_service) }),
+            lookup_service: Some(lookup_service),
             service_definition: self.service_definition,
             probe_interval: self.probe_interval,
             tls_config: self.tls_config,
@@ -195,10 +193,24 @@ where
     }
 
     /// Construct a [`LoadBalancedChannel`] from the [`LoadBalancedChannelBuilder`] instance.
-    pub async fn channel(self) -> Result<LoadBalancedChannel, anyhow::Error> {
-        let (channel, sender) = Channel::balance_channel(GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE);
+    pub async fn channel(mut self) -> Result<LoadBalancedChannel, anyhow::Error> {
+        match self.lookup_service.take() {
+            Some(lookup_service) => self.channel_inner(lookup_service).await,
+            None => {
+                self.channel_inner(DnsResolver::from_system_config().await?)
+                    .await
+            }
+        }
+    }
 
-        let lookup_service = self.lookup_service.await?;
+    async fn channel_inner<U: LookupService>(
+        self,
+        lookup_service: U,
+    ) -> Result<LoadBalancedChannel, anyhow::Error>
+    where
+        U: LookupService + Send + Sync + 'static + Sized,
+    {
+        let (channel, sender) = Channel::balance_channel(GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE);
 
         let config = GrpcServiceProbeConfig {
             service_definition: self
@@ -241,3 +253,9 @@ where
         Ok(LoadBalancedChannel(channel))
     }
 }
+
+const _: () = {
+    const fn assert_is_send<T: Send>() {}
+    assert_is_send::<LoadBalancedChannelBuilder<DnsResolver, ServiceDefinition>>();
+    assert_is_send::<LoadBalancedChannel>();
+};

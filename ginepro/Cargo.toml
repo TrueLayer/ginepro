@@ -1,6 +1,6 @@
 [package]
 name = "ginepro"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Helge Hoff <helge.hoff@truelayer.com>"]
 edition = "2021"
 description = "A client-side gRPC channel implementation for tonic"
