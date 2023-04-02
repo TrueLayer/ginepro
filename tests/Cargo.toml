@@ -8,7 +8,7 @@ publish = false
 [dependencies]
 ginepro = { path = "../ginepro" }
 
-tonic = { version = "0.8", features = ["tls"] }
+tonic = { version = "0.9", features = ["tls"] }
 openssl = "0.10"
 tracing = { version = "0.1", features = ["log", "attributes"] }
 futures = "0.3.12"
@@ -21,5 +21,5 @@ tower-layer = "0.3"
 [dev-dependencies]
 anyhow = "1"
 async-trait = "0.1"
-tonic-health = "0.7"
+tonic-health = "0.9"
 shared-proto = { path = "../shared_proto"}
