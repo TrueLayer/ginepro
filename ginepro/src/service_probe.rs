@@ -143,16 +143,10 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
     ) -> Vec<Change<SocketAddr, Endpoint>> {
         let mut changeset = Vec::new();
 
-        let remove_set: HashSet<SocketAddr> = self
-            .endpoints
-            .difference(endpoints)
-            .copied()
-            .collect();
+        let remove_set: HashSet<SocketAddr> =
+            self.endpoints.difference(endpoints).copied().collect();
 
-        let add_set: HashSet<SocketAddr> = endpoints
-            .difference(&self.endpoints)
-            .copied()
-            .collect();
+        let add_set: HashSet<SocketAddr> = endpoints.difference(&self.endpoints).copied().collect();
 
         changeset.extend(
             add_set
