@@ -7,7 +7,7 @@
 [![CI](https://github.com/TrueLayer/ginepro/workflows/CI/badge.svg)](https://github.com/TrueLayer/ginepro/actions)
 [![Coverage Status](https://coveralls.io/repos/github/TrueLayer/ginepro/badge.svg?branch=main&t=UWgSpm)](https://coveralls.io/github/TrueLayer/ginepro?branch=main)
 
-# Overview
+## Overview
 
 `ginepro` enriches [tonic](https://github.com/hyperium/tonic) by periodically updating the list of
 servers that are available through a `ServiceDiscovery` interface that currently is implemented for DNS.
@@ -19,7 +19,7 @@ Add `ginepro` to your dependencies
 ```toml
 [dependencies]
 # ...
-ginepro = "0.3.0"
+ginepro = "0.5.1"
 ```
 
 ## Getting started
@@ -47,7 +47,7 @@ let grpc_client = TesterClient::new(load_balanced_channel);
 
 For more examples, have a look at the [examples](ginepro/examples) directory.
 
-#### License
+## License
 
 <sup>
 Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
