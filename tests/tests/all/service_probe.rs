@@ -39,7 +39,7 @@ async fn load_balance_succeeds_with_churn() {
         .expect("failed to init");
     let mut client = TesterClient::new(load_balanced_channel);
 
-    let servers: Vec<String> = (0..10).into_iter().map(|s| s.to_string()).collect();
+    let servers: Vec<String> = (0..10).map(|s| s.to_string()).collect();
     let mut servers_called = Vec::new();
 
     // Act
