@@ -168,9 +168,11 @@ where
     }
 
     /// Set a connection timeout that will be applied to every new `Endpoint`.
-    pub fn connect_timeout(self, timeout: Duration) -> LoadBalancedChannelBuilder<T, S> {
+    ///
+    /// Defaults to the overall request `timeout` if not set.
+    pub fn connect_timeout(self, connection_timeout: Duration) -> LoadBalancedChannelBuilder<T, S> {
         Self {
-            connect_timeout: Some(timeout),
+            connect_timeout: Some(connection_timeout),
             ..self
         }
     }
@@ -231,7 +233,7 @@ where
                 .map_err(|err| anyhow::anyhow!(err))?,
             dns_lookup: lookup_service,
             endpoint_timeout: self.timeout,
-            endpoint_connect_timeout: self.connect_timeout,
+            endpoint_connect_timeout: self.connect_timeout.or(self.timeout),
             probe_interval: self
                 .probe_interval
                 .unwrap_or_else(|| Duration::from_secs(10)),
