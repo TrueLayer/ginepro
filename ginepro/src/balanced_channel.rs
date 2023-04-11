@@ -100,6 +100,7 @@ pub struct LoadBalancedChannelBuilder<T, S> {
     probe_interval: Option<Duration>,
     resolution_strategy: ResolutionStrategy,
     timeout: Option<Duration>,
+    connect_timeout: Option<Duration>,
     tls_config: Option<ClientTlsConfig>,
     lookup_service: Option<T>,
 }
@@ -120,6 +121,7 @@ where
             service_definition,
             probe_interval: None,
             timeout: None,
+            connect_timeout: None,
             tls_config: None,
             lookup_service: None,
             resolution_strategy: ResolutionStrategy::Lazy,
@@ -137,6 +139,7 @@ where
             probe_interval: self.probe_interval,
             tls_config: self.tls_config,
             timeout: self.timeout,
+            connect_timeout: self.connect_timeout,
             resolution_strategy: self.resolution_strategy,
         }
     }
@@ -156,10 +159,20 @@ where
         }
     }
 
-    /// Set a timeout that will be applied to every new `Endpoint`.
+    /// Set a request timeout that will be applied to every new `Endpoint`.
     pub fn timeout(self, timeout: Duration) -> LoadBalancedChannelBuilder<T, S> {
         Self {
             timeout: Some(timeout),
+            ..self
+        }
+    }
+
+    /// Set a connection timeout that will be applied to every new `Endpoint`.
+    ///
+    /// Defaults to the overall request `timeout` if not set.
+    pub fn connect_timeout(self, connection_timeout: Duration) -> LoadBalancedChannelBuilder<T, S> {
+        Self {
+            connect_timeout: Some(connection_timeout),
             ..self
         }
     }
@@ -220,6 +233,7 @@ where
                 .map_err(|err| anyhow::anyhow!(err))?,
             dns_lookup: lookup_service,
             endpoint_timeout: self.timeout,
+            endpoint_connect_timeout: self.connect_timeout.or(self.timeout),
             probe_interval: self
                 .probe_interval
                 .unwrap_or_else(|| Duration::from_secs(10)),

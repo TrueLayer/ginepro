@@ -14,12 +14,12 @@ pub struct DnsResolver {
 }
 
 impl DnsResolver {
-    /// Construct a new [`DnsResolver`] from env and system configration, e.g `resolv.conf`.
+    /// Construct a new [`DnsResolver`] from env and system configuration, e.g `resolv.conf`.
     pub async fn from_system_config() -> Result<Self, anyhow::Error> {
         let (config, mut opts) = system_conf::read_system_conf()
             .context("failed to read dns services from system configuration")?;
 
-        // We do not want any caching on out side.
+        // We do not want any caching on our side.
         opts.cache_size = 0;
 
         let dns = AsyncResolver::tokio(config, opts).expect("resolver must be valid");

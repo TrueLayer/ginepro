@@ -109,8 +109,6 @@ impl LookupService for TestDnsResolver {
 
         Ok(ips
             .values()
-            .cloned()
-            .into_iter()
             .map(|address| address.parse().expect("not a valid ip address"))
             .collect())
     }

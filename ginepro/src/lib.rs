@@ -46,7 +46,7 @@
 //!     use shared_proto::pb::tester_client::TesterClient;
 //!     use std::convert::TryInto;
 //!
-//!     // Create a load balanced channel with the default lookup implementation.
+//!     // Create a load balanced channel with a dummy lookup implementation.
 //!     let load_balanced_channel = LoadBalancedChannel::builder(("my.hostname", 5000))
 //!         .lookup_service(DummyLookupService)
 //!         .channel()
@@ -56,7 +56,7 @@
 //!     let tester_client = TesterClient::new(load_balanced_channel);
 //! }
 //! ```
-//! For systems with lower churn, the probe interval can be lowered.
+//! For systems with higher churn, the probe interval can be lowered.
 //!
 //! ```rust
 //! #[tokio::main]
