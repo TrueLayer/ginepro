@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## 0.5.2 (2023-04-11)
 
 * Added `connect_timeout` to `LoadBalancedChannelBuilder`
 
