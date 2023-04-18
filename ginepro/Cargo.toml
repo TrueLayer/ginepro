@@ -1,7 +1,6 @@
 [package]
 name = "ginepro"
-version = "0.5.2"
-authors = ["Helge Hoff <helge.hoff@truelayer.com>"]
+version = "0.6.0"
 edition = "2021"
 description = "A client-side gRPC channel implementation for tonic"
 repository = "https://github.com/TrueLayer/ginepro"
@@ -15,9 +14,9 @@ tonic = { version = "0.9", features = ["tls"] }
 tower = { version = "0.4", default-features = false, features = ["discover"] }
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
-trust-dns-resolver = "0.21"
+trust-dns-resolver = "0.22.0"
 async-trait = "0.1"
-tracing = { version = "0.1", features = ["log", "attributes"] }
+tracing = "0.1"
 http = "0.2"
 thiserror = "1.0.29"
 
