@@ -19,7 +19,7 @@ Add `ginepro` to your dependencies
 ```toml
 [dependencies]
 # ...
-ginepro = "0.5.1"
+ginepro = "0.6.0"
 ```
 
 ## Getting started
