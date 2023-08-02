@@ -194,12 +194,10 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
     }
 
     fn build_endpoint(&self, ip_address: &SocketAddr) -> Option<Endpoint> {
-        let uri = format!(
-            "{}://{}:{}",
-            self.scheme,
-            ip_address.ip(),
-            ip_address.port()
-        );
+        let uri = match ip_address{
+            SocketAddr::V4(v4) => format!("{}://{}:{}", self.scheme, v4.ip(), v4.port()),
+            SocketAddr::V6(v6) => format!("{}://[{}]:{}", self.scheme, v6.ip(), v6.port()),
+        };
 
         let mut endpoint = Endpoint::from_shared(uri)
             .map_err(|err| {
