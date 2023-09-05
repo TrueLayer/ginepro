@@ -22,7 +22,7 @@ impl DnsResolver {
         // We do not want any caching on our side.
         opts.cache_size = 0;
 
-        let dns = AsyncResolver::tokio(config, opts).expect("resolver must be valid");
+        let dns = AsyncResolver::tokio(config, opts);
 
         Ok(Self { dns })
     }

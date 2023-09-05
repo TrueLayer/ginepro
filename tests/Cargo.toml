@@ -8,18 +8,18 @@ publish = false
 [dependencies]
 ginepro = { path = "../ginepro" }
 
-tonic = { version = "0.9", features = ["tls"] }
-openssl = "0.10"
-tracing = { version = "0.1", features = ["log", "attributes"] }
-futures = "0.3.12"
-tokio-stream = { version = "0.1.2", features = ["net"] }
-tokio = { version = "1", features = ["full"] }
+futures = "0.3"
 hyper = "0.14"
-tower-service = "0.3"
+openssl = "0.10"
+tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["net"] }
+tonic = { version = "0.10", features = ["tls"] }
 tower-layer = "0.3"
+tower-service = "0.3"
+tracing = { version = "0.1", features = ["attributes", "log"] }
 
 [dev-dependencies]
 anyhow = "1"
 async-trait = "0.1"
-tonic-health = "0.9"
-shared-proto = { path = "../shared_proto"}
+shared-proto = { path = "../shared_proto" }
+tonic-health = "0.10"
