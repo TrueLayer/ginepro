@@ -5,3 +5,17 @@ members = [
     "tests",
     "shared_proto"
 ]
+
+[workspace.dependencies]
+anyhow = "1"
+async-trait = "0.1"
+http = "0.2"
+proptest = "1"
+prost = "0.12"
+thiserror = "1"
+tokio = "1"
+tonic = ">=0.10,<0.12"
+tonic-build = ">=0.10,<0.12"
+tower = "0.4"
+tracing = "0.1"
+trust-dns-resolver = "0.23"
