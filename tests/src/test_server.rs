@@ -6,11 +6,12 @@ use std::{
 };
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
+use tonic::server::NamedService;
 use tonic::{
     body::BoxBody,
     transport::{
         server::{Router, Routes, Server},
-        NamedService, ServerTlsConfig,
+        ServerTlsConfig,
     },
 };
 use tower_layer::Layer;
