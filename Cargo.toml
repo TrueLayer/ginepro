@@ -5,3 +5,5 @@ members = [
     "tests",
     "shared_proto"
 ]
+
+resolver = "2"

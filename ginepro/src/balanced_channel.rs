@@ -26,7 +26,7 @@ static GRPC_REPORT_ENDPOINTS_CHANNEL_SIZE: usize = 1024;
 /// Implements tonic [`GrpcService`] for a client-side load balanced [`Channel`] (using `The Power of
 /// Two Choices`).
 ///
-/// [`GrpcService`](tonic::client::GrpcService)
+/// [`GrpcService`]
 ///
 /// ```rust
 /// #[tokio::main]

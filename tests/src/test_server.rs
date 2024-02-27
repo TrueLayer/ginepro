@@ -6,11 +6,12 @@ use std::{
 };
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
+use tonic::server::NamedService;
 use tonic::{
     body::BoxBody,
     transport::{
         server::{Router, Routes, Server},
-        NamedService, ServerTlsConfig,
+        ServerTlsConfig,
     },
 };
 use tower_layer::Layer;
@@ -63,7 +64,7 @@ impl TestServer {
         Self::start_with_router(server_builder.add_service(service), address).await
     }
 
-    /// Bootstrap a tonic `TestServer`, with the a tonic [`Router`][tonic::transport::server::Router].
+    /// Bootstrap a tonic `TestServer`, with the a tonic [`Router`].
     /// This enables you to construct a `TestServer` with multiple services.
     ///
     /// ```
