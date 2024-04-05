@@ -217,6 +217,20 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
                 .ok()?;
         }
 
+        let origin_uri = format!(
+            "{}://{}:{}",
+            self.scheme,
+            self.service_definition.hostname(),
+            self.service_definition.port(),
+        );
+
+        endpoint = endpoint.origin(
+            origin_uri
+                .try_into()
+                .map_err(|err| tracing::warn!("origin uri creation error: {err:?}"))
+                .ok()?,
+        );
+
         if let Some(ref timeout) = self.endpoint_timeout {
             endpoint = endpoint.timeout(*timeout);
         }
