@@ -208,7 +208,7 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
                 ip_address.port()
             ),
         };
-        
+
         let mut endpoint = Endpoint::from_shared(uri)
             .map_err(|err| {
                 tracing::warn!("endpoint creation error: {:?}", err);
