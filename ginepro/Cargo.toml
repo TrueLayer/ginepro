@@ -1,6 +1,6 @@
 [package]
 name = "ginepro"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
 description = "A client-side gRPC channel implementation for tonic"
 repository = "https://github.com/TrueLayer/ginepro"
