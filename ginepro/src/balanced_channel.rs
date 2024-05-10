@@ -216,10 +216,7 @@ where
         }
     }
 
-    async fn channel_inner<U: LookupService>(
-        self,
-        lookup_service: U,
-    ) -> Result<LoadBalancedChannel, anyhow::Error>
+    async fn channel_inner<U>(self, lookup_service: U) -> Result<LoadBalancedChannel, anyhow::Error>
     where
         U: LookupService + Send + Sync + 'static + Sized,
     {
