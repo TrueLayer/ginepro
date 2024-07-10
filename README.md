@@ -16,10 +16,8 @@ servers that are available through a `ServiceDiscovery` interface that currently
 
 Add `ginepro` to your dependencies
 
-```toml
-[dependencies]
-# ...
-ginepro = "0.6.0"
+```
+cargo add ginepro
 ```
 
 ## Getting started
