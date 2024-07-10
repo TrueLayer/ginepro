@@ -1,0 +1,4 @@
+[[package]]
+name = "ginepro"
+changelog_include = ["ginepro"]
+changelog_path = "CHANGELOG.md"
