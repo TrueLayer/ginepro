@@ -1,19 +1,19 @@
 use futures::future::FutureExt;
-use hyper::{Body, Request, Response};
+use hyper::{Request, Response};
 use std::{
     convert::Infallible,
     time::{Duration, Instant},
 };
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
-use tonic::server::NamedService;
 use tonic::{
     body::BoxBody,
     transport::{
-        server::{Router, Routes, Server},
+        server::{Router, Server},
         ServerTlsConfig,
     },
 };
+use tonic::{server::NamedService, service::Routes};
 use tower_layer::Layer;
 use tower_service::Service;
 
@@ -45,7 +45,7 @@ impl TestServer {
         tls: Option<ServerTlsConfig>,
     ) -> Self
     where
-        S: Service<Request<Body>, Response = Response<BoxBody>, Error = Infallible>
+        S: Service<Request<BoxBody>, Response = Response<BoxBody>, Error = Infallible>
             + NamedService
             + Clone
             + Send
@@ -86,9 +86,10 @@ impl TestServer {
     pub async fn start_with_router<L, T>(router: Router<L>, address: T) -> TestServer
     where
         L: Layer<Routes> + Send + 'static,
-        L::Service: Service<Request<Body>, Response = Response<BoxBody>> + Clone + Send + 'static,
-        <<L as Layer<Routes>>::Service as Service<Request<Body>>>::Future: Send + 'static,
-        <<L as Layer<Routes>>::Service as Service<Request<Body>>>::Error:
+        L::Service:
+            Service<Request<BoxBody>, Response = Response<BoxBody>> + Clone + Send + 'static,
+        <<L as Layer<Routes>>::Service as Service<Request<BoxBody>>>::Future: Send + 'static,
+        <<L as Layer<Routes>>::Service as Service<Request<BoxBody>>>::Error:
             Into<Box<dyn std::error::Error + Send + Sync>> + Send,
         T: Into<Option<String>>,
     {

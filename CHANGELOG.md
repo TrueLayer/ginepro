@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking changes
+
+* Update to **tonic** 0.12
+* Update to **prost** 0.13
+
 ## 0.7.2 (2024-04-22)
 
 ### Fixed
