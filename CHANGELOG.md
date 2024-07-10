@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1](https://github.com/TrueLayer/ginepro/compare/ginepro-v0.8.0...ginepro-v0.8.1) - 2024-07-10
+
+### Other
+- replace outdated version recommendation with `cargo add` ([#59](https://github.com/TrueLayer/ginepro/pull/59))
+
 ## [0.8.0](https://github.com/TrueLayer/ginepro/compare/ginepro-v0.7.2...ginepro-v0.8.0) - 2024-07-10
 
 ### Breaking changes
