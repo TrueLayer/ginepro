@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.9.0](https://github.com/TrueLayer/ginepro/compare/ginepro-v0.9.0...ginepro-v0.8.1) - 2024-12-09
+## [0.8.2](https://github.com/TrueLayer/ginepro/compare/ginepro-v0.8.2...ginepro-v0.8.1) - 2024-12-09
 
 ### Other
 - Replace `trust-dns-resolver` with `hickory-resolver`([#61](https://github.com/TrueLayer/ginepro/pull/61))
