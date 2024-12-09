@@ -17,7 +17,7 @@ impl ServiceDefinition {
     pub fn from_parts<T: ToString>(hostname: T, port: u16) -> Result<Self, anyhow::Error> {
         let hostname = hostname.to_string();
 
-        trust_dns_resolver::Name::from_ascii(&hostname)
+        hickory_resolver::Name::from_ascii(&hostname)
             .map_err(anyhow::Error::from)
             .context("invalid 'hostname'")?;
 

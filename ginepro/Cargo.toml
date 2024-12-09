@@ -1,6 +1,6 @@
 [package]
 name = "ginepro"
-version = "0.8.1"
+version = "0.8.2"
 edition = "2021"
 description = "A client-side gRPC channel implementation for tonic"
 repository = "https://github.com/TrueLayer/ginepro"
@@ -18,7 +18,7 @@ tokio = { version = "1", features = ["full"] }
 tonic = { version = "0.12", features = ["tls"] }
 tower = { version = "0.4", default-features = false, features = ["discover"] }
 tracing = "0.1"
-trust-dns-resolver = "0.23"
+hickory-resolver = { version = "0.24", features = ["tokio-runtime"] }
 
 [dev-dependencies]
 proptest = "1"
