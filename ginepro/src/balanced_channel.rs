@@ -103,6 +103,9 @@ pub struct LoadBalancedChannelBuilder<T, S> {
     connect_timeout: Option<Duration>,
     tls_config: Option<ClientTlsConfig>,
     lookup_service: Option<T>,
+    keep_alive_timeout: Option<Duration>,
+    http2_keep_alive_interval: Option<Duration>,
+    keep_alive_while_idle: bool,
 }
 
 impl<S> LoadBalancedChannelBuilder<DnsResolver, S>
@@ -125,6 +128,9 @@ where
             tls_config: None,
             lookup_service: None,
             resolution_strategy: ResolutionStrategy::Lazy,
+            keep_alive_timeout: None,
+            http2_keep_alive_interval: None,
+            keep_alive_while_idle: false,
         }
     }
 
@@ -141,6 +147,9 @@ where
             timeout: self.timeout,
             connect_timeout: self.connect_timeout,
             resolution_strategy: self.resolution_strategy,
+            keep_alive_timeout: self.keep_alive_timeout,
+            http2_keep_alive_interval: self.http2_keep_alive_interval,
+            keep_alive_while_idle: self.keep_alive_while_idle,
         }
     }
 }
@@ -173,6 +182,36 @@ where
     pub fn connect_timeout(self, connection_timeout: Duration) -> LoadBalancedChannelBuilder<T, S> {
         Self {
             connect_timeout: Some(connection_timeout),
+            ..self
+        }
+    }
+
+    /// Set the maximum time client should wait for idle keep-alive connections
+    ///
+    /// Uses hyper’s default otherwise.
+    pub fn keep_alive_timeout(self, keep_alive_timeout: Duration) -> LoadBalancedChannelBuilder<T, S> {
+        Self {
+            keep_alive_timeout: Some(keep_alive_timeout),
+            ..self
+        }
+    }
+
+    /// Set http2 KEEP_ALIVE_INTERVAL
+    ///
+    /// Uses hyper’s default otherwise.
+    pub fn http2_keep_alive_interval(self, http2_keep_alive_interval: Duration) -> LoadBalancedChannelBuilder<T, S> {
+        Self {
+            http2_keep_alive_interval: Some(http2_keep_alive_interval),
+            ..self
+        }
+    }
+
+    /// Set http2 KEEP_ALIVE_WHILE_IDLE
+    ///
+    /// Uses hyper’s default otherwise.
+    pub fn keep_alive_while_idle(self, keep_alive_while_idle: bool) -> LoadBalancedChannelBuilder<T, S> {
+        Self {
+            keep_alive_while_idle: keep_alive_while_idle,
             ..self
         }
     }
@@ -234,6 +273,9 @@ where
             probe_interval: self
                 .probe_interval
                 .unwrap_or_else(|| Duration::from_secs(10)),
+            keep_alive_timeout: self.keep_alive_timeout,
+            http2_keep_alive_interval: self.http2_keep_alive_interval,
+            keep_alive_while_idle: self.keep_alive_while_idle,
         };
 
         let tls_config = self.tls_config.map(|mut tls_config| {
