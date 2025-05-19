@@ -2,6 +2,7 @@ use crate::{LookupService, ServiceDefinition};
 use std::collections::HashSet;
 use std::net::SocketAddr;
 use tokio::sync::mpsc::Sender;
+use tokio::time::Duration;
 use tonic::transport::{channel::Endpoint, ClientTlsConfig};
 use tower::discover::Change;
 
@@ -41,6 +42,9 @@ where
     endpoints: HashSet<SocketAddr>,
     endpoint_reporter: Sender<Change<SocketAddr, Endpoint>>,
     tls_config: Option<ClientTlsConfig>,
+    keep_alive_timeout: Option<Duration>,
+    http2_keep_alive_interval: Option<Duration>,
+    keep_alive_while_idle: bool,
 }
 
 /// Config parameters to customize the behavior of `GrpcServiceProbe`.
@@ -59,6 +63,12 @@ where
     pub endpoint_timeout: Option<tokio::time::Duration>,
     /// A connection timeout that will be applied to every endpoint.
     pub endpoint_connect_timeout: Option<tokio::time::Duration>,
+    /// Keep alive timeout for the underlying connection.
+    pub keep_alive_timeout: Option<Duration>,
+    /// HTTP2 keep alive interval
+    pub http2_keep_alive_interval: Option<Duration>,
+    /// Enable keep alive while idle for the underlying connection.
+    pub keep_alive_while_idle: bool,
 }
 
 impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
@@ -78,6 +88,9 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
             endpoint_reporter,
             scheme: http::uri::Scheme::HTTP,
             tls_config: None,
+            keep_alive_timeout: config.keep_alive_timeout,
+            http2_keep_alive_interval: config.http2_keep_alive_interval,
+            keep_alive_while_idle: config.keep_alive_while_idle,
         }
     }
 
@@ -230,6 +243,15 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
         }
         if let Some(ref connect_timeout) = self.endpoint_connect_timeout {
             endpoint = endpoint.connect_timeout(*connect_timeout)
+        }
+        if let Some(ref timeout) = self.keep_alive_timeout{
+            endpoint = endpoint.keep_alive_timeout(*timeout);
+        }
+        if let Some(ref inteval) = self.http2_keep_alive_interval{
+            endpoint = endpoint.http2_keep_alive_interval(*inteval);
+        }
+        if self.keep_alive_while_idle{
+            endpoint = endpoint.keep_alive_while_idle(true);
         }
 
         Some(endpoint)
