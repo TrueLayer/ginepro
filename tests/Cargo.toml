@@ -13,7 +13,7 @@ hyper = "1"
 openssl = "0.10"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["net"] }
-tonic = { version = "0.12", features = ["tls"] }
+tonic = { version = "0.13", features = ["tls-ring"] }
 tower-layer = "0.3"
 tower-service = "0.3"
 tracing = { version = "0.1", features = ["attributes", "log"] }
@@ -22,4 +22,4 @@ tracing = { version = "0.1", features = ["attributes", "log"] }
 anyhow = "1"
 async-trait = "0.1"
 shared-proto = { path = "../shared_proto" }
-tonic-health = "0.12"
+tonic-health = "0.13"
