@@ -7,7 +7,7 @@ use std::{
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::{
-    body::BoxBody,
+    body::Body,
     transport::{
         server::{Router, Server},
         ServerTlsConfig,
@@ -45,10 +45,11 @@ impl TestServer {
         tls: Option<ServerTlsConfig>,
     ) -> Self
     where
-        S: Service<Request<BoxBody>, Response = Response<BoxBody>, Error = Infallible>
+        S: Service<Request<Body>, Response = Response<Body>, Error = Infallible>
             + NamedService
             + Clone
             + Send
+            + Sync
             + 'static,
         S::Future: Send + 'static,
         S::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
@@ -86,10 +87,9 @@ impl TestServer {
     pub async fn start_with_router<L, T>(router: Router<L>, address: T) -> TestServer
     where
         L: Layer<Routes> + Send + 'static,
-        L::Service:
-            Service<Request<BoxBody>, Response = Response<BoxBody>> + Clone + Send + 'static,
-        <<L as Layer<Routes>>::Service as Service<Request<BoxBody>>>::Future: Send + 'static,
-        <<L as Layer<Routes>>::Service as Service<Request<BoxBody>>>::Error:
+        L::Service: Service<Request<Body>, Response = Response<Body>> + Clone + Send + 'static,
+        <<L as Layer<Routes>>::Service as Service<Request<Body>>>::Future: Send + 'static,
+        <<L as Layer<Routes>>::Service as Service<Request<Body>>>::Error:
             Into<Box<dyn std::error::Error + Send + Sync>> + Send,
         T: Into<Option<String>>,
     {

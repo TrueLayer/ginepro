@@ -2,8 +2,10 @@ use crate::{LookupService, ServiceDefinition};
 use std::collections::HashSet;
 use std::net::SocketAddr;
 use tokio::sync::mpsc::Sender;
-use tonic::transport::{channel::Endpoint, ClientTlsConfig};
-use tower::discover::Change;
+use tonic::transport::{
+    channel::{Change, Endpoint},
+    ClientTlsConfig,
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ProbeError {
