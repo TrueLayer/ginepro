@@ -8,12 +8,13 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::{
     body::Body,
+    server::NamedService,
+    service::Routes,
     transport::{
         server::{Router, Server},
         ServerTlsConfig,
     },
 };
-use tonic::{server::NamedService, service::Routes};
 use tower_layer::Layer;
 use tower_service::Service;
 
@@ -116,7 +117,7 @@ impl TestServer {
         let wait_start = Instant::now();
         while let Err(e) = TcpStream::connect(listener_addr).await {
             if wait_start.elapsed() > Duration::from_secs(10) {
-                panic!("Cannot connect to {}: {}", listener_addr, e);
+                panic!("Cannot connect to {listener_addr}: {e}");
             }
             tokio::task::yield_now().await;
         }
