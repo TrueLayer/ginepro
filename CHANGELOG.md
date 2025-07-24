@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0](https://github.com/TrueLayer/ginepro/compare/ginepro-v0.8.2...ginepro-v0.8.1) - 2025-07-24
+
+### Breaking changes
+- Update to **tonic** 0.13
+- Update to **tower** 0.5
+- Update to **hickory-resolver** 0.25
+- Update to **thiserror** 2
+
 ## [0.8.2](https://github.com/TrueLayer/ginepro/compare/ginepro-v0.8.2...ginepro-v0.8.1) - 2024-12-09
 
 ### Other

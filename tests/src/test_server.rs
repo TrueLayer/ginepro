@@ -7,13 +7,14 @@ use std::{
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::{
-    body::BoxBody,
+    body::Body,
+    server::NamedService,
+    service::Routes,
     transport::{
         server::{Router, Server},
         ServerTlsConfig,
     },
 };
-use tonic::{server::NamedService, service::Routes};
 use tower_layer::Layer;
 use tower_service::Service;
 
@@ -45,10 +46,11 @@ impl TestServer {
         tls: Option<ServerTlsConfig>,
     ) -> Self
     where
-        S: Service<Request<BoxBody>, Response = Response<BoxBody>, Error = Infallible>
+        S: Service<Request<Body>, Response = Response<Body>, Error = Infallible>
             + NamedService
             + Clone
             + Send
+            + Sync
             + 'static,
         S::Future: Send + 'static,
         S::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
@@ -86,10 +88,9 @@ impl TestServer {
     pub async fn start_with_router<L, T>(router: Router<L>, address: T) -> TestServer
     where
         L: Layer<Routes> + Send + 'static,
-        L::Service:
-            Service<Request<BoxBody>, Response = Response<BoxBody>> + Clone + Send + 'static,
-        <<L as Layer<Routes>>::Service as Service<Request<BoxBody>>>::Future: Send + 'static,
-        <<L as Layer<Routes>>::Service as Service<Request<BoxBody>>>::Error:
+        L::Service: Service<Request<Body>, Response = Response<Body>> + Clone + Send + 'static,
+        <<L as Layer<Routes>>::Service as Service<Request<Body>>>::Future: Send + 'static,
+        <<L as Layer<Routes>>::Service as Service<Request<Body>>>::Error:
             Into<Box<dyn std::error::Error + Send + Sync>> + Send,
         T: Into<Option<String>>,
     {
@@ -116,7 +117,7 @@ impl TestServer {
         let wait_start = Instant::now();
         while let Err(e) = TcpStream::connect(listener_addr).await {
             if wait_start.elapsed() > Duration::from_secs(10) {
-                panic!("Cannot connect to {}: {}", listener_addr, e);
+                panic!("Cannot connect to {listener_addr}: {e}");
             }
             tokio::task::yield_now().await;
         }
