@@ -1,30 +1,28 @@
 //! Implements [`LookupService`] for dns.
 
 use crate::{LookupService, ServiceDefinition};
-use anyhow::Context;
-use hickory_resolver::{system_conf, AsyncResolver, TokioAsyncResolver};
-use std::collections::HashSet;
-use std::net::SocketAddr;
+use hickory_resolver::TokioResolver;
+use std::{collections::HashSet, net::SocketAddr};
 
 /// Implements [`LookupService`] by using DNS queries to lookup [`ServiceDefinition::hostname`].
 pub struct DnsResolver {
     /// The trust-dns resolver which contacts the dns service directly such
     /// that we bypass os-specific dns caching.
-    dns: TokioAsyncResolver,
+    dns: TokioResolver,
 }
 
 impl DnsResolver {
     /// Construct a new [`DnsResolver`] from env and system configuration, e.g `resolv.conf`.
     pub async fn from_system_config() -> Result<Self, anyhow::Error> {
-        let (config, mut opts) = system_conf::read_system_conf()
-            .context("failed to read dns services from system configuration")?;
+        let mut builder = TokioResolver::builder_tokio()?;
 
         // We do not want any caching on our side.
+        let opts = builder.options_mut();
         opts.cache_size = 0;
 
-        let dns = AsyncResolver::tokio(config, opts);
-
-        Ok(Self { dns })
+        Ok(Self {
+            dns: builder.build(),
+        })
     }
 }
 
