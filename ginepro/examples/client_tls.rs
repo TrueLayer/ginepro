@@ -1,9 +1,7 @@
 use ginepro::LoadBalancedChannel;
-use tonic::transport::Certificate;
-use tonic::transport::ClientTlsConfig;
+use tonic::transport::{Certificate, ClientTlsConfig};
 
-use shared_proto::pb::echo_client::EchoClient;
-use shared_proto::pb::EchoRequest;
+use shared_proto::pb::{echo_client::EchoClient, EchoRequest};
 use tests::tls::TestSslCertificate;
 
 #[tokio::main]
@@ -30,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = client.unary_echo(request).await?;
 
-    println!("RESPONSE={:?}", response);
+    println!("RESPONSE={response:?}");
 
     Ok(())
 }
