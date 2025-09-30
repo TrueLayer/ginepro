@@ -8,6 +8,8 @@ pub struct ServiceDefinition {
     hostname: String,
     /// The service port.
     port: u16,
+    /// Authority
+    authority: http::uri::Authority,
 }
 
 impl ServiceDefinition {
@@ -21,12 +23,24 @@ impl ServiceDefinition {
             .map_err(anyhow::Error::from)
             .context("invalid 'hostname'")?;
 
-        Ok(Self { hostname, port })
+        let authority = format!("{}:{}", hostname, port)
+            .parse()
+            .context("invalid 'hostname'")?;
+
+        Ok(Self {
+            hostname,
+            port,
+            authority,
+        })
     }
 
     /// Get the `hostname` part of a `ServiceDefinition`.
     pub fn hostname(&self) -> &str {
         &self.hostname
+    }
+
+    pub(crate) fn authority(&self) -> &http::uri::Authority {
+        &self.authority
     }
 
     /// Get the `port` part of a `ServiceDefinition`.
