@@ -252,7 +252,7 @@ fn create_origin(authority: http::uri::Authority) -> http::uri::Uri {
     let mut parts = http::uri::Parts::default();
     parts.scheme = Some(http::uri::Scheme::HTTP);
     parts.authority = Some(authority);
-    parts.path_and_query = Some(http::uri::PathAndQuery::from_static(""));
+    parts.path_and_query = Some(http::uri::PathAndQuery::from_static("/"));
     parts
         .try_into()
         .expect("Invalid URI. Impossible as all parts are present")
