@@ -21,7 +21,7 @@ impl DnsResolver {
         opts.cache_size = 0;
 
         Ok(Self {
-            dns: builder.build(),
+            dns: builder.build()?,
         })
     }
 }
