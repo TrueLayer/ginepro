@@ -110,31 +110,5 @@ jobs:
           command: publish
           args: --dry-run --manifest-path ginepro/Cargo.toml
 
-  coverage:
-    name: Code coverage
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin
-      - name: Check code coverage
-        run: cargo tarpaulin --ignore-tests --out Lcov
-      - name: Upload to Coveralls
-        # upload only if push
-        if: ${{ github.event_name == 'push' }}
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: './lcov.info'
+
 
