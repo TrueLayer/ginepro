@@ -93,11 +93,22 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
     }
 
     /// Start probing the provided `hostname` for IP address changes.
-    /// The function will error if the receiving end of the tonic balance channel
-    /// is closed, e.g, the client has been deconstructed.
+    /// The probe loop exits once the receiving end of the tonic balance channel is closed,
+    /// e.g. when the client has been dropped.
     /// Any other errors are seen as transient, and therefore retried after `self.probe_interval`.
     pub async fn probe(mut self) -> Result<(), anyhow::Error> {
+        let client_closed_err = || {
+            anyhow::anyhow!(
+                "The gRPC client has closed the channel therefore the DNS probe loop will exit."
+            )
+        };
+
         loop {
+            // If the receiver is already gone (e.g. client dropped), exit promptly.
+            if self.endpoint_reporter.is_closed() {
+                return Err(client_closed_err());
+            }
+
             self.probe_once().await.or_else(|err| {
                 // Only terminate if the changeset channel has been closed.
                 if let ProbeError::ChangesetSenderClosed(_) = err {
@@ -107,7 +118,10 @@ impl<Lookup: LookupService> GrpcServiceProbe<Lookup> {
                 }
             })?;
 
-            tokio::time::sleep(self.probe_interval).await;
+            tokio::select! {
+                _ = self.endpoint_reporter.closed() => return Err(client_closed_err()),
+                _ = tokio::time::sleep(self.probe_interval) => {},
+            }
         }
     }
 
