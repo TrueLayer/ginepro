@@ -18,7 +18,7 @@ tokio = { version = "1", features = ["full"] }
 tonic = { version = "0.14", features = ["tls-ring"] }
 tower = { version = "0.5", default-features = false, features = ["discover"] }
 tracing = "0.1"
-hickory-resolver = { version = "0.25", features = ["tokio"] }
+hickory-resolver = { version = "0.26", features = ["tokio"] }
 
 [dev-dependencies]
 proptest = "1"
