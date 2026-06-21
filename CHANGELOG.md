@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Widen the `tonic` dependency to `>=0.13, <0.15` to support **tonic** 0.14 alongside 0.13.
+
 ## [0.9.3](https://github.com/TrueLayer/ginepro/compare/ginepro-v0.9.2...ginepro-v0.9.3) - 2026-05-15
 
 ### Added

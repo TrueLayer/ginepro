@@ -110,5 +110,24 @@ jobs:
           command: publish
           args: --dry-run --manifest-path ginepro/Cargo.toml
 
-
+  tonic-0_13-check:
+    name: ginepro builds against tonic 0.13
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - name: Check ginepro against the 0.13 lower bound
+        run: |
+          cd ginepro
+          cargo remove --dev proptest shared-proto tests
+          printf '\n[workspace]\n' >> Cargo.toml
+          cargo update -p tonic --precise 0.13.1
+          cargo check --no-default-features --features tls-ring
+          cargo check --no-default-features --features tls-aws-lc
 
